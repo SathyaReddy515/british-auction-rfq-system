@@ -1,0 +1,187 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1674.84375 924.0999999999999" width="1674.84375" height="924.0999999999999" style="--bg:#18181B;--fg:#F4F4F5;--line:#71717A;--muted:#A1A1AA;--surface:#27272A;--border:#3F3F46;background:var(--bg)">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap');
+  text { font-family: 'Inter', system-ui, sans-serif; }
+  svg {
+    /* Derived from --bg and --fg (overridable via --line, --accent, etc.) */
+    --_text:          var(--fg);
+    --_text-sec:      var(--muted, color-mix(in srgb, var(--fg) 60%, var(--bg)));
+    --_text-muted:    var(--muted, color-mix(in srgb, var(--fg) 40%, var(--bg)));
+    --_text-faint:    color-mix(in srgb, var(--fg) 25%, var(--bg));
+    --_line:          var(--line, color-mix(in srgb, var(--fg) 50%, var(--bg)));
+    --_arrow:         var(--accent, color-mix(in srgb, var(--fg) 85%, var(--bg)));
+    --_node-fill:     var(--surface, color-mix(in srgb, var(--fg) 3%, var(--bg)));
+    --_node-stroke:   var(--border, color-mix(in srgb, var(--fg) 20%, var(--bg)));
+    --_group-fill:    var(--bg);
+    --_group-hdr:     color-mix(in srgb, var(--fg) 5%, var(--bg));
+    --_inner-stroke:  color-mix(in srgb, var(--fg) 12%, var(--bg));
+    --_key-badge:     color-mix(in srgb, var(--fg) 10%, var(--bg));
+  }
+</style>
+<defs>
+  <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="7" refY="2.5" orient="auto">
+    <polygon points="0 0, 8 2.5, 0 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+  <marker id="arrowhead-start" markerWidth="8" markerHeight="5" refX="1" refY="2.5" orient="auto-start-reverse">
+    <polygon points="8 0, 0 2.5, 8 5" fill="var(--_arrow)" stroke="var(--_arrow)" stroke-width="0.75" stroke-linejoin="round" />
+  </marker>
+</defs>
+<g class="subgraph" data-id="Clients" data-label="Frontend Clients (React 18 + Vite + Tailwind CSS)">
+  <rect x="368.28952083333337" y="40" width="433.631" height="183.60000000000002" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="368.28952083333337" y="40" width="433.631" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="380.28952083333337" y="54" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">Frontend Clients (React 18 + Vite + Tailwind CSS)</text>
+</g>
+<g class="subgraph" data-id="API_Gateway" data-label="FastAPI Backend (Async Core)">
+  <rect x="107.5" y="351.90000000000003" width="1002.9606249999998" height="250.1" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="107.5" y="351.90000000000003" width="1002.9606249999998" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="119.5" y="365.90000000000003" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">FastAPI Backend (Async Core)</text>
+</g>
+<g class="subgraph" data-id="Storage" data-label="Persistence &amp; Broker Layer">
+  <rect x="859.6247291666666" y="730.3" width="409.919" height="127.80000000000001" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="859.6247291666666" y="730.3" width="409.919" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="871.6247291666666" y="744.3" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">Persistence &amp; Broker Layer</text>
+</g>
+<g class="subgraph" data-id="Background" data-label="Asynchronous Workers (Celery)">
+  <rect x="1158.4671875" y="447.30000000000007" width="404.73199999999997" height="154.7" rx="0" ry="0" fill="var(--_group-fill)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <rect x="1158.4671875" y="447.30000000000007" width="404.73199999999997" height="28" rx="0" ry="0" fill="var(--_group-hdr)" stroke="var(--_node-stroke)" stroke-width="1" />
+  <text x="1170.4671875" y="461.30000000000007" font-size="12" font-weight="600" fill="var(--_text-sec)" dy="4.199999999999999">Asynchronous Workers (Celery)</text>
+</g>
+<polyline class="edge" data-from="BuyerUI" data-to="AuthModule" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="REST / HTTPS" points="472.3250208333334,171.60000000000002 472.3250208333334,265.6 405.48499999999996,265.6 405.48499999999996,333.90000000000003 416.8893333333333,333.90000000000003 416.8893333333333,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="BuyerUI" data-to="RFQService" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="REST / HTTPS" points="428.30727083333335,171.60000000000002 428.30727083333335,253.60000000000002 266.08783333333326,253.60000000000002 266.08783333333326,333.90000000000003 230.43099999999993,333.90000000000003 230.43099999999993,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="BuyerUI" data-to="WSHub" data-style="solid" data-arrow-start="true" data-arrow-end="true" data-label="WSS" points="516.3427708333334,171.60000000000002 516.3427708333334,195.60000000000002 582.0466458333333,195.60000000000002 582.0466458333333,265.6 647.4632291666667,265.6 647.4632291666667,333.90000000000003 650.0585,333.90000000000003 650.0584999999999,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" marker-start="url(#arrowhead-start)" />
+<polyline class="edge" data-from="SupplierUI" data-to="AuthModule" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="REST / HTTPS" points="637.7505208333333,171.60000000000002 637.7505208333333,183.60000000000002 572.0466458333333,183.60000000000002 572.0466458333333,265.6 497.82099999999997,265.6 497.82099999999997,333.90000000000003 468.41666666666663,333.90000000000003 468.41666666666663,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SupplierUI" data-to="BiddingEngine" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="REST / HTTPS" points="736.5305208333333,171.60000000000002 736.5305208333333,265.6 857.1216666666667,265.6 857.1216666666667,333.90000000000003 914.8914999999998,333.90000000000003 914.8914999999998,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="SupplierUI" data-to="WSHub" data-style="solid" data-arrow-start="true" data-arrow-end="true" data-label="WSS" points="687.1405208333333,171.60000000000002 687.1405208333333,265.6 701.1157499999999,265.6 701.1157499999999,395.90000000000003" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" marker-start="url(#arrowhead-start)" />
+<polyline class="edge" data-from="RFQService" data-to="PG" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="SQLAlchemy 2.0" points="230.43099999999993,432.80000000000007 230.43099999999993,668 229.6094999999999,668 229.6094999999999,712.3 920.5687291666666,712.3 920.5687291666666,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="BiddingEngine" data-to="PG" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Atomic Row Lock Transaction" points="847.5322499999999,432.80000000000007 847.5322499999999,700.3 965.5127291666666,700.3 965.5127291666666,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="BiddingEngine" data-to="RedisCache" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Publish Committed Event" points="914.8914999999998,432.80000000000007 914.8914999999998,444.80000000000007 896.2746249999999,444.80000000000007 896.2746249999999,644 1126.81225,644 1126.81225,712.3 1125.9364791666667,712.3 1125.9364791666667,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="RedisCache" data-to="WSHub" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Pub/Sub Event Stream" points="1140.1150625,842.0999999999999 1140.1150625,876.0999999999999 97.5,876.0999999999999 97.5,321.9 599.0012499999999,321.9 599.0012499999999,395.9" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CeleryBeat" data-to="RedisCache" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Dispatch Close Checks" points="1257.3156875,553.5500000000002 1257.3156875,644 1259.32225,644 1259.32225,700.3 1168.4722291666667,700.3 1168.4722291666667,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="RedisCache" data-to="CeleryWorker" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Consume Tasks" points="1196.8293958333334,842.0999999999999 1196.8293958333334,876.0999999999999 1575.2057499999999,876.0999999999999 1575.2057499999999,429.3 1457.6816875,429.3 1457.6816875,499.75" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CeleryWorker" data-to="PG" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Verify &amp; Commit Closure" points="1427.8425208333333,570.45 1427.8425208333333,574.0000000000001 1247.3156875,574.0000000000001 1247.3156875,632 993.7722499999999,632 993.7722499999999,712.3 1010.4567291666666,712.3 1010.4567291666666,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="CeleryWorker" data-to="RedisCache" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Publish Status Change" points="1487.5208541666666,570.45 1487.5208541666666,668 1462.3237499999998,668 1462.3237499999998,712.3 1211.0079791666667,712.3 1211.0079791666667,774.3" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<polyline class="edge" data-from="BiddingEngine" data-to="RankingService" data-style="solid" data-arrow-start="false" data-arrow-end="true" data-label="Ranking Calculation" points="982.2507499999999,432.80000000000007 982.2507499999999,444.80000000000007 1000.8676249999999,444.80000000000007 1000.8676249999999,549.1" fill="none" stroke="var(--_line)" stroke-width="1" marker-end="url(#arrowhead)" />
+<g class="edge-label" data-from="BuyerUI" data-to="AuthModule" data-label="REST / HTTPS">
+  <rect x="360.98499999999996" y="272.6" width="88.336" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="405.15299999999996" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">REST / HTTPS</text>
+</g>
+<g class="edge-label" data-from="BuyerUI" data-to="RFQService" data-label="REST / HTTPS">
+  <rect x="221.58783333333326" y="272.6" width="88.336" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="265.75583333333327" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">REST / HTTPS</text>
+</g>
+<g class="edge-label" data-from="BuyerUI" data-to="WSHub" data-label="WSS">
+  <rect x="626.9632291666667" y="272.6" width="40.816" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="647.3712291666667" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">WSS</text>
+</g>
+<g class="edge-label" data-from="SupplierUI" data-to="AuthModule" data-label="REST / HTTPS">
+  <rect x="453.32099999999997" y="272.6" width="88.336" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="497.489" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">REST / HTTPS</text>
+</g>
+<g class="edge-label" data-from="SupplierUI" data-to="BiddingEngine" data-label="REST / HTTPS">
+  <rect x="812.6216666666667" y="272.6" width="88.336" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="856.7896666666667" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">REST / HTTPS</text>
+</g>
+<g class="edge-label" data-from="SupplierUI" data-to="WSHub" data-label="WSS">
+  <rect x="680.6157499999999" y="272.6" width="40.816" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="701.02375" y="287.75" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">WSS</text>
+</g>
+<g class="edge-label" data-from="RFQService" data-to="PG" data-label="SQLAlchemy 2.0">
+  <rect x="181.6094999999999" y="675" width="95.46400000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="229.3414999999999" y="690.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">SQLAlchemy 2.0</text>
+</g>
+<g class="edge-label" data-from="BiddingEngine" data-to="PG" data-label="Atomic Row Lock Transaction">
+  <rect x="768.5322499999999" y="651" width="157.24" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="847.1522499999999" y="666.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Atomic Row Lock Transaction</text>
+</g>
+<g class="edge-label" data-from="BiddingEngine" data-to="RedisCache" data-label="Publish Committed Event">
+  <rect x="1061.31225" y="651" width="130.51000000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1126.56725" y="666.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Publish Committed Event</text>
+</g>
+<g class="edge-label" data-from="RedisCache" data-to="WSHub" data-label="Pub/Sub Event Stream">
+  <rect x="36" y="838.8" width="122.78800000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="97.394" y="853.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Pub/Sub Event Stream</text>
+</g>
+<g class="edge-label" data-from="CeleryBeat" data-to="RedisCache" data-label="Dispatch Close Checks">
+  <rect x="1195.82225" y="651" width="126.946" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1259.29525" y="666.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Dispatch Close Checks</text>
+</g>
+<g class="edge-label" data-from="RedisCache" data-to="CeleryWorker" data-label="Consume Tasks">
+  <rect x="1527.70575" y="838.8" width="94.27600000000001" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1574.84375" y="853.9499999999999" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Consume Tasks</text>
+</g>
+<g class="edge-label" data-from="CeleryWorker" data-to="PG" data-label="Verify &amp; Commit Closure">
+  <rect x="929.7722499999999" y="651" width="127.54" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="993.5422499999999" y="666.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Verify &amp; Commit Closure</text>
+</g>
+<g class="edge-label" data-from="CeleryWorker" data-to="RedisCache" data-label="Publish Status Change">
+  <rect x="1400.3237499999998" y="675" width="123.38200000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1462.0147499999998" y="690.15" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Publish Status Change</text>
+</g>
+<g class="edge-label" data-from="BiddingEngine" data-to="RankingService" data-label="Ranking Calculation">
+  <rect x="945.3676249999999" y="475.80000000000007" width="110.90800000000002" height="30.3" rx="2" ry="2" fill="var(--bg)" stroke="var(--_inner-stroke)" stroke-width="1" />
+  <text x="1000.8216249999998" y="490.95000000000005" text-anchor="middle" font-size="11" font-weight="400" fill="var(--_text-sec)" dy="3.8499999999999996">Ranking Calculation</text>
+</g>
+<g class="node" data-id="BuyerUI" data-label="Buyer Dashboard
+- RFQ Creation &amp; Config
+- Live Monitoring
+- Winner Selection" data-shape="rectangle">
+  <rect x="384.28952083333337" y="84" width="176.07099999999997" height="87.60000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="472.3250208333334" y="127.80000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="472.3250208333334" dy="-20.8">Buyer Dashboard</tspan><tspan x="472.3250208333334" dy="16.900000000000002">- RFQ Creation &amp; Config</tspan><tspan x="472.3250208333334" dy="16.900000000000002">- Live Monitoring</tspan><tspan x="472.3250208333334" dy="16.900000000000002">- Winner Selection</tspan></text>
+</g>
+<g class="node" data-id="SupplierUI" data-label="Supplier Dashboard
+- Quote Submission
+- Real-Time Bidding
+- Rank Tracking (L1/L2/L3)" data-shape="rectangle">
+  <rect x="588.3605208333333" y="84" width="197.55999999999997" height="87.60000000000001" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="687.1405208333333" y="127.80000000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="687.1405208333333" dy="-20.8">Supplier Dashboard</tspan><tspan x="687.1405208333333" dy="16.900000000000002">- Quote Submission</tspan><tspan x="687.1405208333333" dy="16.900000000000002">- Real-Time Bidding</tspan><tspan x="687.1405208333333" dy="16.900000000000002">- Rank Tracking (L1/L2/L3)</tspan></text>
+</g>
+<g class="node" data-id="AuthModule" data-label="Auth &amp; RBAC (JWT)" data-shape="rectangle">
+  <rect x="365.36199999999997" y="395.90000000000003" width="154.582" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="442.65299999999996" y="414.35" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Auth &amp; RBAC (JWT)</text>
+</g>
+<g class="node" data-id="RFQService" data-label="RFQ &amp; Auction Config Service" data-shape="rectangle">
+  <rect x="123.5" y="395.90000000000003" width="213.86199999999997" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="230.43099999999998" y="414.35" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">RFQ &amp; Auction Config Service</text>
+</g>
+<g class="node" data-id="BiddingEngine" data-label="Bidding &amp; Extension Engine (Row Lock)" data-shape="rectangle">
+  <rect x="780.1729999999999" y="395.90000000000003" width="269.43699999999995" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="914.8914999999998" y="414.35" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Bidding &amp; Extension Engine (Row Lock)</text>
+</g>
+<g class="node" data-id="RankingService" data-label="Supplier Ranking Engine" data-shape="rectangle">
+  <rect x="907.2746249999999" y="549.1" width="187.18599999999998" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1000.8676249999999" y="567.5500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">Supplier Ranking Engine</text>
+</g>
+<g class="node" data-id="WSHub" data-label="WebSocket Connection Hub" data-shape="rectangle">
+  <rect x="547.944" y="395.90000000000003" width="204.22899999999996" height="36.900000000000006" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="650.0585" y="414.35" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)" dy="4.55">WebSocket Connection Hub</text>
+</g>
+<g class="node" data-id="PG" data-label="PostgreSQL 16
+Authoritative Data Store" data-shape="cylinder">
+  <rect x="875.6247291666666" y="781.3" width="179.77599999999998" height="53.80000000000001" fill="var(--_node-fill)" stroke="none" />
+  <line x1="875.6247291666666" y1="781.3" x2="875.6247291666666" y2="835.0999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1055.4007291666667" y1="781.3" x2="1055.4007291666667" y2="835.0999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="965.5127291666666" cy="835.0999999999999" rx="89.88799999999999" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="965.5127291666666" cy="781.3" rx="89.88799999999999" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="965.5127291666666" y="808.1999999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="965.5127291666666" dy="-3.9000000000000012">PostgreSQL 16</tspan><tspan x="965.5127291666666" dy="16.900000000000002">Authoritative Data Store</tspan></text>
+</g>
+<g class="node" data-id="RedisCache" data-label="Redis 7
+Broker &amp; WS Pub/Sub" data-shape="cylinder">
+  <rect x="1083.4007291666667" y="781.3" width="170.14299999999997" height="53.80000000000001" fill="var(--_node-fill)" stroke="none" />
+  <line x1="1083.4007291666667" y1="781.3" x2="1083.4007291666667" y2="835.0999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <line x1="1253.5437291666667" y1="781.3" x2="1253.5437291666667" y2="835.0999999999999" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="1168.4722291666667" cy="835.0999999999999" rx="85.07149999999999" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <ellipse cx="1168.4722291666667" cy="781.3" rx="85.07149999999999" ry="7" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1168.4722291666667" y="808.1999999999999" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1168.4722291666667" dy="-3.9000000000000012">Redis 7</tspan><tspan x="1168.4722291666667" dy="16.900000000000002">Broker &amp; WS Pub/Sub</tspan></text>
+</g>
+<g class="node" data-id="CeleryWorker" data-label="Celery Worker
+- Closure Execution
+- Idempotent Verification" data-shape="rectangle">
+  <rect x="1368.1641875" y="499.75000000000006" width="179.03499999999997" height="70.7" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1457.6816875" y="535.1" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1457.6816875" dy="-12.350000000000001">Celery Worker</tspan><tspan x="1457.6816875" dy="16.900000000000002">- Closure Execution</tspan><tspan x="1457.6816875" dy="16.900000000000002">- Idempotent Verification</tspan></text>
+</g>
+<g class="node" data-id="CeleryBeat" data-label="Celery Beat
+- Periodic Reconciler" data-shape="rectangle">
+  <rect x="1174.4671875" y="499.75000000000006" width="165.697" height="53.800000000000004" rx="0" ry="0" fill="var(--_node-fill)" stroke="var(--_node-stroke)" stroke-width="0.75" />
+  <text x="1257.3156875" y="526.6500000000001" text-anchor="middle" font-size="13" font-weight="500" fill="var(--_text)"><tspan x="1257.3156875" dy="-3.9000000000000012">Celery Beat</tspan><tspan x="1257.3156875" dy="16.900000000000002">- Periodic Reconciler</tspan></text>
+</g>
+</svg>

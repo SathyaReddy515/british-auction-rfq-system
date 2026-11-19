@@ -1,0 +1,546 @@
+BRITISH AUCTIONIN RFQ SYSTEM
+Final System Design & Database Schema
+React • Python FastAPI • PostgreSQL • Celery • Redis
+Prepared from the supplied British Auction assignment and Full Stack Intern job description
+1. Purpose and Source of Requirements
+This document is the final proposed system design and database schema to accompany the British Auction in RFQ System hiring assignment. The company assignment PDF is the source of truth for required business functionality. The Full Stack Intern JD guides technology selection.
+Assignment requirements: RFQ creation, auction timing, forced close, X-minute trigger window, Y-minute extension, three extension trigger choices, quote fields, auction listing/details, activity history and four deliverables.
+JD-aligned stack: Python/FastAPI, React and PostgreSQL. Celery with Redis is selected for background jobs; Neo4j is optional/good-to-have and is not required for the core relational workflow.
+This document defines a proposed implementation design. It does not claim that code has already been built or tested.
+2. Final Technology Stack
+Layer
+Technology
+Purpose
+Frontend
+React + Vite
+Buyer and supplier portals, forms, auction dashboard and real-time client updates.
+Backend
+Python + FastAPI
+REST APIs, authentication, authorization, validation and auction business services.
+Database
+PostgreSQL
+Persistent transactional storage and source of truth.
+ORM / migrations
+SQLAlchemy 2.x + Alembic
+Relational models and versioned schema migrations.
+Background jobs
+Celery + Redis
+Scheduled closure checks and asynchronous tasks.
+Scheduling
+Celery Beat / ETA tasks
+Schedule or reconcile auction close checks.
+Real-time
+FastAPI WebSockets
+Push committed auction updates to authorized clients.
+Packaging
+Docker Compose
+Local repeatable environment.
+Neo4j is excluded from the core implementation because the required RFQ, quote, bid and activity data is relational. Redis is the selected broker; RabbitMQ is not required in addition.
+3. High-Level Design (HLD)
+3.1 Architecture diagram
+Figure 1. Final proposed HLD architecture, based on the architecture diagram supplied by the user and refined for clearer component responsibilities.
+3.2 Component responsibilities
+Component
+Responsibility
+Buyer / Supplier
+Use the application through role-appropriate interfaces.
+React Frontend
+Buyer RFQ management, supplier quotation/bidding, auction listing/details, forms and live updates.
+FastAPI Backend
+REST endpoints, request validation, authentication/authorization and orchestration.
+RFQ Management
+Create, validate, configure and retrieve RFQs and auctions.
+Bidding Engine
+Validate bids, persist bid history and coordinate ranking/extension evaluation.
+Supplier Ranking
+Determine each supplier's current valid bid and calculate L1/L2/L3.
+Auction Extension Engine
+Evaluate the configured trigger, calculate extension and enforce forced-close cap.
+PostgreSQL
+Authoritative persistent state for users, RFQs, configurations, quotes, bids, logs and results.
+Redis
+Celery message broker; not the source of truth for auction state.
+Celery Beat / Worker
+Schedule and execute close checks; worker re-reads current database state before closing.
+WebSocket Updates
+Push authorized updates after the database transaction commits.
+3.3 Main data flow
+Buyer creates an RFQ and supplies bid start, initial close, forced close and service date. The backend validates and stores the RFQ and auction configuration.
+Suppliers submit quote details and participate in the auction when it is active.
+A bid request reaches FastAPI. The backend authenticates the supplier, validates eligibility and checks the current auction state using server time.
+The bidding service persists the bid in a transaction, calculates each supplier's current bid/rank and evaluates the selected extension trigger.
+If a trigger qualifies, the effective close time is extended by Y minutes but capped at the forced close time. Bid and extension events are recorded in the activity log.
+After commit, WebSocket updates are published to authorized connected clients. A close-check task is scheduled or reconciled.
+At task execution, the Celery worker re-reads PostgreSQL. It closes the auction only if the latest effective close time has passed; stale or duplicate tasks must not close it early.
+3.4 Critical consistency and security controls
+PostgreSQL is the source of truth for auction status, current close time, bids and activity events.
+Serialize bid processing per RFQ using a database transaction and row-level lock (or equivalent) so concurrent bids cannot corrupt rankings or extension decisions.
+Use server-generated timestamps. Never trust a timestamp supplied by the browser.
+Make close tasks idempotent. A delayed, duplicate or stale task must re-check the current close time and status before changing state.
+Commit bid, extension and activity records atomically. Publish WebSocket messages only after commit.
+Apply role-based access: buyers manage their RFQs; suppliers can participate only when eligible; supplier visibility must follow the chosen privacy policy.
+4. Auction Business Rules and Design Decisions
+ID
+Rule / decision
+Basis
+BR-01
+Forced close time must be later than initial bid close time.
+Explicit assignment validation.
+BR-02
+Auction must not accept bids before start or at/after effective close.
+Necessary lifecycle validation derived from the auction workflow.
+BR-03
+Suppliers compete by lowering prices.
+Explicit assignment description.
+BR-04
+L1 is lowest current supplier price; L2 and L3 follow ascending order.
+Explicit assignment terminology.
+BR-05
+Trigger evaluation uses the last X minutes before the current effective close.
+Assignment trigger-window definition.
+BR-06
+New close = MIN(current close + Y minutes, forced close).
+Assignment extension and forced-close rule.
+BR-07
+Retain every bid as history; do not overwrite previous bids.
+Design choice for auditability.
+BR-08
+Use the latest valid bid per supplier to calculate current supplier ranking.
+Proposed ranking policy; assignment does not define historical-bid treatment.
+BR-09
+For equal current prices, earliest accepted timestamp at that price ranks first; supplier UUID is final deterministic tie-break.
+Proposed tie policy; assignment is silent.
+BR-10
+Initial implementation stores one selected trigger type per auction.
+Proposed interpretation of the three listed trigger options; confirm if multi-select is intended.
+BR-11
+A normal close is CLOSED; closure at the forced deadline is FORCE_CLOSED.
+Proposed mapping to assignment status labels.
+4.1 Three extension trigger types
+Trigger type
+Condition to extend
+BID_RECEIVED
+A valid bid is accepted inside the trigger window.
+ANY_SUPPLIER_RANK_CHANGE
+At least one supplier's rank changes after a qualifying bid inside the trigger window.
+L1_RANK_CHANGE
+The identity of the lowest-priced supplier changes after a qualifying bid inside the trigger window.
+A price reduction by the current L1 supplier does not itself satisfy L1_RANK_CHANGE if the identity of L1 remains unchanged.
+4.2 Pricing assumption to confirm
+The assignment lists freight, origin and destination charges on the quote form and separately describes suppliers lowering prices. This design treats bid_amount as the total competitive price for the RFQ; the quote stores the charge breakdown. If the intended behavior is that each rebid changes individual charge components, the bid model must be expanded to store a component-level breakdown or a versioned quote snapshot.
+4.3 Winner selection assumption
+The assignment requires bids sorted by price and supplier ranking, but does not explicitly state that the system automatically awards the RFQ. Therefore, the design stores a final result snapshot and allows the winner-selection policy to be confirmed. A buyer may select the winning supplier after closure; the lowest price should not automatically be treated as an awarded contract without that decision.
+5. Database Design
+The schema is relational and uses UUID primary keys, foreign keys, TIMESTAMPTZ for event times stored in UTC, DATE for service date, NUMERIC for money, and JSONB for structured audit metadata. Seven core tables are defined below.
+5.1 Entity Relationship Diagram
+Figure 2. Proposed ER diagram showing the seven core tables and their principal relationships.
+users
+Application accounts.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+User identifier
+full_name
+VARCHAR(150)
+NOT NULL
+Display name
+email
+VARCHAR(255)
+NOT NULL, UNIQUE
+Login email
+password_hash
+VARCHAR(255)
+NOT NULL
+Hashed password only
+role
+VARCHAR(20)
+NOT NULL
+BUYER or SUPPLIER
+is_active
+BOOLEAN
+NOT NULL DEFAULT TRUE
+Account state
+created_at / updated_at
+TIMESTAMPTZ
+NOT NULL
+Audit timestamps
+rfqs
+RFQ and auction lifecycle information.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+RFQ identifier
+reference_id
+VARCHAR(60)
+NOT NULL, UNIQUE
+Business reference
+name
+VARCHAR(200)
+NOT NULL
+RFQ name
+buyer_id
+UUID
+FK → users.id
+Creator; must be BUYER
+bid_start_at
+TIMESTAMPTZ
+NOT NULL
+Bid start
+initial_bid_close_at
+TIMESTAMPTZ
+NOT NULL
+Original close
+current_bid_close_at
+TIMESTAMPTZ
+NOT NULL
+Effective close after extensions
+forced_close_at
+TIMESTAMPTZ
+NOT NULL
+Absolute latest close
+pickup_service_date
+DATE
+NOT NULL
+Service date
+status
+VARCHAR(20)
+NOT NULL
+DRAFT, SCHEDULED, ACTIVE, CLOSED, FORCE_CLOSED, CANCELLED
+created_at / updated_at
+TIMESTAMPTZ
+NOT NULL
+Audit timestamps
+auction_configs
+One extension configuration per RFQ.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+Configuration identifier
+rfq_id
+UUID
+FK → rfqs.id, UNIQUE
+One-to-one RFQ relationship
+trigger_window_minutes
+INTEGER
+NOT NULL, CHECK > 0
+X minutes
+extension_duration_minutes
+INTEGER
+NOT NULL, CHECK > 0
+Y minutes
+trigger_type
+VARCHAR(40)
+NOT NULL
+BID_RECEIVED / ANY_SUPPLIER_RANK_CHANGE / L1_RANK_CHANGE
+created_at / updated_at
+TIMESTAMPTZ
+NOT NULL
+Audit timestamps
+quotes
+Supplier quote and charge breakdown.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+Quote identifier
+rfq_id
+UUID
+FK → rfqs.id
+Related RFQ
+supplier_id
+UUID
+FK → users.id
+Supplier; must be SUPPLIER
+carrier_name
+VARCHAR(160)
+NOT NULL
+Carrier name
+freight_charges
+NUMERIC(14,2)
+NOT NULL, CHECK >= 0
+Freight amount
+origin_charges
+NUMERIC(14,2)
+NOT NULL, CHECK >= 0
+Origin amount
+destination_charges
+NUMERIC(14,2)
+NOT NULL, CHECK >= 0
+Destination amount
+transit_time
+VARCHAR(100)
+NOT NULL
+Transit duration
+validity_text
+VARCHAR(100)
+NOT NULL
+Quote validity
+currency_code
+CHAR(3)
+NOT NULL DEFAULT 'INR'
+Currency
+created_at / updated_at
+TIMESTAMPTZ
+NOT NULL
+Audit timestamps
+bids
+Immutable history of competitive bid submissions.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+Bid identifier
+rfq_id
+UUID
+FK → rfqs.id
+Auction
+quote_id
+UUID
+FK → quotes.id
+Related quote
+supplier_id
+UUID
+FK → users.id
+Bidder
+bid_amount
+NUMERIC(14,2)
+NOT NULL, CHECK > 0
+Total competitive price under stated assumption
+currency_code
+CHAR(3)
+NOT NULL DEFAULT 'INR'
+Currency
+created_at
+TIMESTAMPTZ
+NOT NULL
+Server acceptance time
+request_id
+UUID
+UNIQUE
+Idempotency key
+auction_activity_logs
+Audit trail for bidding and auction lifecycle.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+Event identifier
+rfq_id
+UUID
+FK → rfqs.id
+Related RFQ
+actor_user_id
+UUID
+FK → users.id, NULL
+Null for system-generated event
+event_type
+VARCHAR(40)
+NOT NULL
+BID_SUBMITTED, RANK_CHANGED, AUCTION_EXTENDED, AUCTION_CLOSED, FORCE_CLOSED
+description
+TEXT
+NOT NULL
+Human-readable event reason
+event_data
+JSONB
+NOT NULL DEFAULT '{}'
+Structured before/after values
+created_at
+TIMESTAMPTZ
+NOT NULL
+Server event time
+auction_results
+Final result snapshot; does not imply automatic award.
+Column
+Data type
+Key / constraint
+Description
+id
+UUID
+PK
+Result identifier
+rfq_id
+UUID
+FK → rfqs.id, UNIQUE
+One result per RFQ
+winning_supplier_id
+UUID
+FK → users.id, NULL
+Selected supplier if awarded
+final_bid_id
+UUID
+FK → bids.id, NULL
+Selected final bid
+final_bid_amount
+NUMERIC(14,2), NULL
+Optional
+Selected amount
+closed_at
+TIMESTAMPTZ
+NOT NULL
+Closure time
+selection_status
+VARCHAR(30)
+NOT NULL
+PENDING_SELECTION, SELECTED, NO_VALID_BIDS
+created_at
+TIMESTAMPTZ
+NOT NULL
+Creation time
+5.2 Relationships
+Relationship
+Cardinality
+Meaning
+users → rfqs
+1 to many
+One buyer can create multiple RFQs.
+rfqs → auction_configs
+1 to 1
+Each auction-enabled RFQ has one configuration.
+rfqs → quotes
+1 to many
+An RFQ can receive quotes from multiple suppliers.
+users → quotes
+1 to many
+A supplier can submit quotes to multiple RFQs.
+quotes → bids
+1 to many
+A quote can have multiple competitive bid records.
+rfqs → bids
+1 to many
+An RFQ contains multiple bids.
+rfqs → auction_activity_logs
+1 to many
+An RFQ has a chronological event history.
+rfqs → auction_results
+1 to 0/1
+A closed RFQ may have one result record.
+5.3 Constraints and indexes
+Table
+Constraint / index
+Purpose
+users
+UNIQUE(email)
+Unique login identity.
+rfqs
+UNIQUE(reference_id)
+Unique RFQ reference.
+rfqs
+CHECK(initial_bid_close_at > bid_start_at)
+Valid bidding window.
+rfqs
+CHECK(forced_close_at > initial_bid_close_at)
+Assignment validation.
+rfqs
+CHECK(current_bid_close_at <= forced_close_at)
+Enforce forced-close cap.
+auction_configs
+CHECK(X > 0 AND Y > 0)
+Valid trigger and extension durations.
+quotes
+CHECK(each charge >= 0)
+Prevent negative charge values.
+bids
+CHECK(bid_amount > 0)
+Prevent zero/negative bids.
+bids
+INDEX(rfq_id, supplier_id, created_at DESC)
+Find each supplier's latest bid.
+bids
+INDEX(rfq_id, bid_amount ASC, created_at ASC)
+Support bid/ranking queries.
+auction_activity_logs
+INDEX(rfq_id, created_at DESC)
+Load activity history efficiently.
+Service-level validation must also ensure that the quote's RFQ and supplier match the bid's RFQ and supplier, and that referenced users have the correct role. These cross-row rules may be strengthened with composite foreign keys where practical.
+6. Core Transaction Flows
+6.1 Bid submission and extension
+Begin a database transaction and lock the relevant RFQ row.
+Read current status, server time, effective close, forced close and auction configuration.
+Reject if auction is not ACTIVE, has not started, or current time is at/after effective close.
+Validate supplier participation and bid price against the supplier's previous accepted bid and the documented price policy.
+Insert the bid with a server-generated timestamp and idempotency request ID.
+Calculate supplier rankings before and after the bid using each supplier's latest valid bid.
+Evaluate the configured trigger against the event time and trigger window [current close - X, current close).
+If triggered, set current close to the earlier of current close + Y and forced close; record the extension reason and old/new close times.
+Insert bid and extension activity events, then commit.
+After commit, publish WebSocket events and schedule/reconcile the closure task.
+6.2 Scheduled closure
+Celery Beat or a scheduled task dispatches a close-check job for the auction.
+The worker loads the RFQ from PostgreSQL and checks its latest status and current_bid_close_at.
+If the auction is not active, the task exits idempotently.
+If current time is earlier than the latest close, the task does not close the auction and schedules/reconciles another check.
+If the forced close time has been reached, set FORCE_CLOSED; otherwise, if the effective close has been reached, set CLOSED.
+Record the closure event and result snapshot in a transaction, then publish a WebSocket status update after commit.
+7. Assignment Coverage Matrix
+Assignment requirement
+Design coverage
+RFQ name/reference and bid dates
+rfqs table and RFQ Management component
+Forced close later than initial close
+rfqs constraint and backend validation
+Pickup/service date
+rfqs.pickup_service_date
+Carrier and charge quote fields
+quotes table
+Trigger window X and extension Y
+auction_configs table
+Bid received trigger
+BID_RECEIVED trigger
+Any supplier rank change trigger
+ANY_SUPPLIER_RANK_CHANGE trigger
+L1 identity change trigger
+L1_RANK_CHANGE trigger
+Never extend beyond forced close
+current close cap and transaction flow
+Auction listing fields/status
+rfqs plus ranking query
+Bid list and supplier ranking
+bids plus Supplier Ranking service
+Quote details and configuration
+quotes and auction_configs
+Bid submissions, extensions and reasons
+auction_activity_logs
+HLD and architecture diagram
+Sections 2–3 and Figure 1
+Database schema
+Section 5 and Figure 2
+8. Assumptions Requiring Confirmation
+Open point
+Proposed decision
+Do multiple extension triggers apply simultaneously?
+One selected trigger per auction initially; confirm whether multi-select is required.
+Does bid amount mean total quote price or individual charge components?
+Treat bid_amount as total competitive price; retain charge breakdown on quote.
+Which bid represents a supplier's current ranking?
+Latest valid bid per supplier.
+How are equal prices ranked?
+Earliest accepted timestamp at that price, then deterministic tie-break.
+Is the lowest bidder automatically awarded the RFQ?
+No automatic award assumed; buyer selection is recorded separately.
+What can suppliers see about competitors?
+Restrict sensitive quote details; expose only fields required by the agreed auction transparency policy.
+9. Handover Instructions for Antigravity
+Attach this document together with the original assignment PDF, the Full Stack Intern JD PDF, and the master development prompt. Instruct Antigravity to treat the assignment PDF as the business-requirement authority and this document as the approved proposed architecture/schema. Before implementation, ask it to identify conflicts or unresolved assumptions, then implement the design and maintain requirement traceability. Do not allow it to silently change the schema or auction rules.
+Recommended instruction: “Use this final System Design and Database Schema as the implementation baseline. Cross-check every item against the original assignment PDF. If you identify a conflict or a missing requirement, report it before changing the design. Generate migrations and tests from the approved schema and business rules.”
