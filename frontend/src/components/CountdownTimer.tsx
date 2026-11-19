@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, AlertTriangle, ShieldAlert } from 'lucide-react';
-import { useCountdown } from '../hooks/useCountdown';
+import { useCountdown, parseUTC } from '../hooks/useCountdown';
 
 interface CountdownTimerProps {
   closeTime?: string;
@@ -40,7 +40,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
           </div>
         </div>
         <div className="text-xs text-slate-500 font-mono">
-          {closeTime ? `Ended: ${new Date(closeTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+          {closeTime ? `Ended: ${new Date(parseUTC(closeTime)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
         </div>
       </div>
     );
@@ -92,7 +92,7 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
             <div className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">Hard Forced Close Cap</div>
             <div className="text-xs font-mono font-semibold text-slate-200">
               {forcedCloseTime
-                ? new Date(forcedCloseTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                ? new Date(parseUTC(forcedCloseTime)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                 : '--:--'}
               <span className="text-slate-500 ml-1.5 font-sans">({forcedTimeFormatted} left)</span>
             </div>

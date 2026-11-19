@@ -17,6 +17,14 @@ from backend.app.services.ranking_service import RankingService
 router = APIRouter()
 
 
+def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt
+
+
 def enrich_rfq_response(rfq: RFQ, db: Session) -> dict:
     l1_info = RankingService.get_l1_supplier(db, rfq.id)
     lowest_bid = float(l1_info[1]) if l1_info else None
@@ -26,14 +34,14 @@ def enrich_rfq_response(rfq: RFQ, db: Session) -> dict:
         "reference_id": rfq.reference_id,
         "name": rfq.name,
         "buyer_id": rfq.buyer_id,
-        "bid_start_at": rfq.bid_start_at,
-        "initial_bid_close_at": rfq.initial_bid_close_at,
-        "current_bid_close_at": rfq.current_bid_close_at,
-        "forced_close_at": rfq.forced_close_at,
+        "bid_start_at": ensure_utc(rfq.bid_start_at),
+        "initial_bid_close_at": ensure_utc(rfq.initial_bid_close_at),
+        "current_bid_close_at": ensure_utc(rfq.current_bid_close_at),
+        "forced_close_at": ensure_utc(rfq.forced_close_at),
         "pickup_service_date": rfq.pickup_service_date,
         "status": rfq.status,
-        "created_at": rfq.created_at,
-        "updated_at": rfq.updated_at,
+        "created_at": ensure_utc(rfq.created_at),
+        "updated_at": ensure_utc(rfq.updated_at),
         "auction_config": rfq.auction_config,
         "current_lowest_bid": lowest_bid,
         "total_bids_count": len(rfq.bids) if rfq.bids else 0,

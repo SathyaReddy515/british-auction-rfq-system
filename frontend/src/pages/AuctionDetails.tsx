@@ -23,6 +23,7 @@ import { useAuctionWebSocket } from '../hooks/useAuctionWebSocket';
 import { StatusBadge } from '../components/StatusBadge';
 import { RankBadge } from '../components/RankBadge';
 import { CountdownTimer } from '../components/CountdownTimer';
+import { parseUTC } from '../hooks/useCountdown';
 import { BiddingConsole } from '../components/BiddingConsole';
 import { SubmitQuoteModal } from '../components/SubmitQuoteModal';
 import { SelectWinnerModal } from '../components/SelectWinnerModal';
@@ -250,7 +251,7 @@ export const AuctionDetails: React.FC = () => {
               </div>
               <div className="w-1 h-1 rounded-full bg-slate-700" />
               <div>
-                Bid Start: <span className="font-mono text-slate-300">{new Date(rfq.bid_start_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                Bid Start: <span className="font-mono text-slate-300">{new Date(parseUTC(rfq.bid_start_at)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-slate-700" />
               <div>

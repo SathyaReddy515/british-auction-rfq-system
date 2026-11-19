@@ -12,6 +12,18 @@ interface CountdownResult {
   isForcedExpired: boolean;
 }
 
+export const parseUTC = (str?: string): number => {
+  if (!str) return 0;
+  let clean = str.trim();
+  // If string does not specify timezone (no 'Z' and no +HH:MM / -HH:MM), append 'Z'
+  // because all timestamps stored in our database are in UTC!
+  if (!clean.endsWith('Z') && !/[+-]\d{2}:\d{2}$/.test(clean) && !/[+-]\d{4}$/.test(clean)) {
+    clean += 'Z';
+  }
+  const time = new Date(clean).getTime();
+  return isNaN(time) ? 0 : time;
+};
+
 export const useCountdown = (
   closeTimeStr?: string,
   forcedTimeStr?: string,
@@ -40,8 +52,8 @@ export const useCountdown = (
     };
   }
 
-  const closeTime = new Date(closeTimeStr).getTime();
-  const forcedTime = forcedTimeStr ? new Date(forcedTimeStr).getTime() : closeTime;
+  const closeTime = parseUTC(closeTimeStr);
+  const forcedTime = forcedTimeStr ? parseUTC(forcedTimeStr) : closeTime;
 
   const diffMs = Math.max(0, closeTime - now);
   const forcedDiffMs = Math.max(0, forcedTime - now);

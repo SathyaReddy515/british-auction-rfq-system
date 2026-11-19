@@ -19,6 +19,7 @@ import { rfqService } from '../services/rfqService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { CreateRFQModal } from '../components/CreateRFQModal';
+import { parseUTC } from '../hooks/useCountdown';
 
 export const AuctionListing: React.FC = () => {
   const { user } = useAuth();
@@ -195,8 +196,8 @@ export const AuctionListing: React.FC = () => {
                 </tr>
               ) : (
                 rfqs.map((rfq) => {
-                  const closeDate = new Date(rfq.current_bid_close_at);
-                  const forcedDate = new Date(rfq.forced_close_at);
+                  const closeDate = new Date(parseUTC(rfq.current_bid_close_at));
+                  const forcedDate = new Date(parseUTC(rfq.forced_close_at));
 
                   return (
                     <tr
