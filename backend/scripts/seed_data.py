@@ -13,20 +13,22 @@ from backend.app.models.auction_result import AuctionResult
 from backend.app.models.enums import UserRole, RFQStatus, TriggerType, EventType, SelectionStatus
 
 
-def seed_database():
-    print("Dropping and recreating database tables...")
-    Base.metadata.create_all(bind=engine)
+def seed_database(drop_existing: bool = True):
     db = SessionLocal()
-
     try:
-        now = datetime.now(timezone.utc)
-        print("Checking existing seed data...")
-        buyer = db.query(User).filter(User.email == "buyer@demo.com").first()
-        if buyer:
-            print("Database already contains seed users. Skipping duplicate seeding.")
-            return
+        if drop_existing:
+            print("Resetting database tables...")
+            Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
+        else:
+            Base.metadata.create_all(bind=engine)
+            buyer = db.query(User).filter(User.email == "buyer@demo.com").first()
+            if buyer:
+                print("Database already contains seed users. Skipping duplicate seeding.")
+                return
 
-        print("Seeding Users...")
+        now = datetime.now(timezone.utc)
+        print(f"Seeding fresh users and RFQs at {now.isoformat()}...")
         buyer = User(
             full_name="Acme Procurement Officer",
             email="buyer@demo.com",
@@ -69,9 +71,9 @@ def seed_database():
 
         print("Seeding RFQs...")
 
-        # RFQ 1: Active British Auction with BID_RECEIVED trigger (Closing in 15 minutes)
+        # RFQ 1: Active British Auction with BID_RECEIVED trigger (Closing in 8 minutes - INSIDE trigger window)
         rfq1_start = now - timedelta(hours=1)
-        rfq1_close = now + timedelta(minutes=15)
+        rfq1_close = now + timedelta(minutes=8)
         rfq1_forced = now + timedelta(hours=2)
         rfq1 = RFQ(
             reference_id="RFQ-2026-001",
