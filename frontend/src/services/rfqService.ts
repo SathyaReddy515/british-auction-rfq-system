@@ -56,6 +56,11 @@ export const rfqService = {
     return res.data;
   },
 
+  updateSchedule: async (id: string, schedule: { current_bid_close_at?: string; forced_close_at?: string }): Promise<RFQ> => {
+    const res = await api.patch<RFQ>(`/rfqs/${id}/schedule`, schedule);
+    return res.data;
+  },
+
   // Quotes
   submitQuote: async (rfqId: string, quoteData: {
     carrier_name: string;

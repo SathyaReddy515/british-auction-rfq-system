@@ -1,5 +1,7 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, Query, status, HTTPException
 from sqlalchemy.orm import Session
 
@@ -127,3 +129,60 @@ def configure_auction(
     db.commit()
     db.refresh(config)
     return config
+
+
+class ScheduleUpdate(BaseModel):
+    current_bid_close_at: Optional[datetime] = None
+    forced_close_at: Optional[datetime] = None
+
+
+@router.patch("/{rfq_id}/schedule", response_model=RFQResponse)
+def update_rfq_schedule(
+    rfq_id: uuid.UUID,
+    schedule_in: ScheduleUpdate,
+    db: Session = Depends(get_db),
+    buyer: User = Depends(get_current_buyer)
+):
+    from datetime import datetime, timezone
+    from backend.app.models.auction_activity_log import AuctionActivityLog
+
+    rfq = RFQService.get_rfq_details(db, rfq_id)
+    if rfq.buyer_id != buyer.id:
+        raise HTTPException(status_code=403, detail="Not authorized to update this RFQ schedule")
+    if rfq.status in ["CLOSED", "FORCE_CLOSED"]:
+        raise HTTPException(status_code=400, detail="Cannot alter schedule for closed auction")
+
+    now = datetime.now(timezone.utc)
+    if schedule_in.current_bid_close_at:
+        close = schedule_in.current_bid_close_at
+        if close.tzinfo is None:
+            close = close.replace(tzinfo=timezone.utc)
+        rfq.current_bid_close_at = close
+
+    if schedule_in.forced_close_at:
+        forced = schedule_in.forced_close_at
+        if forced.tzinfo is None:
+            forced = forced.replace(tzinfo=timezone.utc)
+        rfq.forced_close_at = forced
+
+    if rfq.forced_close_at <= rfq.current_bid_close_at:
+        raise HTTPException(status_code=400, detail="Forced close must be strictly later than closing time")
+
+    rfq.updated_at = now
+
+    log = AuctionActivityLog(
+        rfq_id=rfq.id,
+        actor_user_id=buyer.id,
+        event_type="AUCTION_CONFIG_CHANGED",
+        description=f"Buyer adjusted auction closing schedule to {rfq.current_bid_close_at.isoformat()}.",
+        event_data={
+            "current_bid_close_at": rfq.current_bid_close_at.isoformat(),
+            "forced_close_at": rfq.forced_close_at.isoformat()
+        },
+        created_at=now
+    )
+    db.add(log)
+    db.commit()
+    db.refresh(rfq)
+    return enrich_rfq_response(rfq, db)
+

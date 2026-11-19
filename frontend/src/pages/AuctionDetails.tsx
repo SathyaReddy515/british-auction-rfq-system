@@ -13,7 +13,8 @@ import {
   Send, 
   Zap,
   Radio,
-  Share2
+  Share2,
+  Calendar
 } from 'lucide-react';
 import { RFQ, Quote, Bid, SupplierRankingItem, ActivityLog, AuctionResult } from '../types/auction';
 import { rfqService } from '../services/rfqService';
@@ -26,6 +27,7 @@ import { BiddingConsole } from '../components/BiddingConsole';
 import { SubmitQuoteModal } from '../components/SubmitQuoteModal';
 import { SelectWinnerModal } from '../components/SelectWinnerModal';
 import { ActivityFeed } from '../components/ActivityFeed';
+import { DateTimeDialog } from '../components/DateTimeDialog';
 
 export const AuctionDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +46,7 @@ export const AuctionDetails: React.FC = () => {
   // Modals
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [isWinnerModalOpen, setIsWinnerModalOpen] = useState(false);
+  const [isDateDialogOpen, setIsDateDialogOpen] = useState(false);
 
   // Extension notification banner
   const [extensionNotice, setExtensionNotice] = useState<string | null>(null);
@@ -129,6 +132,21 @@ export const AuctionDetails: React.FC = () => {
       setRfq(updated);
     } catch (e: any) {
       alert(e.response?.data?.detail || 'Failed to publish RFQ.');
+    }
+  };
+
+  const handleScheduleUpdate = async (newCloseDate: string) => {
+    if (!id) return;
+    try {
+      const updated = await rfqService.updateSchedule(id, {
+        current_bid_close_at: new Date(newCloseDate).toISOString(),
+      });
+      setRfq(updated);
+      setExtensionNotice(`📅 Closing time updated to ${new Date(newCloseDate).toLocaleTimeString()}`);
+      setTimeout(() => setExtensionNotice(null), 8000);
+      fetchAuctionData();
+    } catch (e: any) {
+      alert(e.response?.data?.detail || 'Failed to update auction schedule.');
     }
   };
 
@@ -268,6 +286,16 @@ export const AuctionDetails: React.FC = () => {
                 className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-lg shadow-emerald-950 transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <FileText className="w-4 h-4" /> Submit Quotation Breakdown
+              </button>
+            )}
+
+            {isBuyer && !isClosed && (
+              <button
+                onClick={() => setIsDateDialogOpen(true)}
+                className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-indigo-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                title="Open fast date dialog to adjust closing time"
+              >
+                <Calendar className="w-4 h-4 text-indigo-400" /> Adjust Closing Time
               </button>
             )}
 
@@ -642,6 +670,17 @@ export const AuctionDetails: React.FC = () => {
         onClose={() => setIsWinnerModalOpen(false)}
         onSuccess={fetchAuctionData}
       />
+
+      {isDateDialogOpen && rfq && (
+        <DateTimeDialog
+          isOpen={true}
+          onClose={() => setIsDateDialogOpen(false)}
+          title={`Adjust Closing Time - ${rfq.reference_id}`}
+          currentValue={new Date(rfq.current_bid_close_at).toISOString().slice(0, 16)}
+          fieldRole="close"
+          onSelect={handleScheduleUpdate}
+        />
+      )}
     </div>
   );
 };
