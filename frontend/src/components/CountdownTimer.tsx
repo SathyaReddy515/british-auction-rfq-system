@@ -8,6 +8,7 @@ interface CountdownTimerProps {
   triggerWindowMinutes?: number;
   extensionMinutes?: number;
   status: string;
+  onExpire?: () => void;
 }
 
 export const CountdownTimer: React.FC<CountdownTimerProps> = ({
@@ -16,11 +17,13 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
   triggerWindowMinutes = 10,
   extensionMinutes = 5,
   status,
+  onExpire,
 }) => {
   const { formattedTime, isInTriggerWindow, isExpired, forcedTimeFormatted, isForcedExpired } = useCountdown(
     closeTime,
     forcedCloseTime,
-    triggerWindowMinutes
+    triggerWindowMinutes,
+    onExpire
   );
 
   const isActive = status === 'ACTIVE';

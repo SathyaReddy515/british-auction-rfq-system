@@ -782,9 +782,63 @@ def test_19_scheduled_closure_after_extension(db_session, buyer_user):
 
 
 # =====================================================================
-# 20. Unauthorized Access Rejection
+# 20. Existing Participant Remains Eligible Without Matching Quote
 # =====================================================================
-def test_20_unauthorized_role_enforcement(db_session, buyer_user, supplier_user):
+def test_20_existing_participant_remains_eligible(db_session, buyer_user, supplier_user):
+    now = datetime.now(timezone.utc)
+    rfq = RFQ(
+        reference_id="RFQ-PARTICIPANT",
+        name="Existing Participant RFQ",
+        buyer_id=buyer_user.id,
+        bid_start_at=now - timedelta(hours=1),
+        initial_bid_close_at=now + timedelta(hours=1),
+        current_bid_close_at=now + timedelta(hours=1),
+        forced_close_at=now + timedelta(hours=2),
+        pickup_service_date=date.today() + timedelta(days=5),
+        status=RFQStatus.ACTIVE.value
+    )
+    db_session.add(rfq)
+    db_session.flush()
+
+    mismatched_quote = Quote(
+        rfq_id=rfq.id,
+        supplier_id=buyer_user.id,
+        carrier_name="Mismatched Existing Quote",
+        freight_charges=Decimal("50000"),
+        origin_charges=Decimal("0"),
+        destination_charges=Decimal("0"),
+        transit_time="1d",
+        validity_text="1d",
+        currency_code="INR"
+    )
+    db_session.add(mismatched_quote)
+    db_session.flush()
+
+    existing_bid = Bid(
+        rfq_id=rfq.id,
+        quote_id=mismatched_quote.id,
+        supplier_id=supplier_user.id,
+        bid_amount=Decimal("47000"),
+        currency_code="INR",
+        created_at=now
+    )
+    db_session.add(existing_bid)
+    db_session.commit()
+
+    result = BiddingService.submit_bid(
+        db_session,
+        rfq.id,
+        supplier_user.id,
+        Decimal("46000"),
+        override_now=now
+    )
+    assert result["bid"].bid_amount == Decimal("46000")
+
+
+# =====================================================================
+# 21. Unauthorized Access Rejection
+# =====================================================================
+def test_21_unauthorized_role_enforcement(db_session, buyer_user, supplier_user):
     now = datetime.now(timezone.utc)
     rfq_in = RFQCreate(
         reference_id="RFQ-ILLEGAL",
@@ -813,3 +867,247 @@ def test_20_unauthorized_role_enforcement(db_session, buyer_user, supplier_user)
     with pytest.raises(HTTPException) as exc_quote:
         QuoteService.submit_quote(db_session, dummy_uuid, quote_in, buyer_user)
     assert exc_quote.value.status_code == 403
+
+
+# =====================================================================
+# 21. Supplier Award Notification Persistence
+# =====================================================================
+def test_22_supplier_award_notification(db_session, buyer_user, supplier_user):
+    from backend.app.models.notification import Notification
+    from backend.app.models.auction_result import AuctionResult
+    from backend.app.api.v1.endpoints.notifications import list_notifications, mark_notification_read
+
+    now = datetime.now(timezone.utc)
+    rfq_in = RFQCreate(
+        reference_id=f"RFQ-AWARD-NOTIF-{uuid.uuid4().hex[:6]}",
+        name="Award Notification Test RFQ",
+        bid_start_at=now - timedelta(hours=3),
+        initial_bid_close_at=now - timedelta(hours=1),
+        forced_close_at=now + timedelta(hours=2),
+        pickup_service_date=date.today() + timedelta(days=2),
+        config=AuctionConfigBase(trigger_window_minutes=5, extension_duration_minutes=5, trigger_type=TriggerType.BID_RECEIVED)
+    )
+    rfq = RFQService.create_rfq(db_session, rfq_in, buyer_user)
+    rfq.status = RFQStatus.ACTIVE.value
+    db_session.commit()
+
+    # Create quotation and bid for supplier
+    quote_in = QuoteCreate(
+        carrier_name="Notif Line",
+        freight_charges=Decimal("5000.00"),
+        origin_charges=Decimal("500.00"),
+        destination_charges=Decimal("500.00"),
+        transit_time="3d",
+        validity_text="3d",
+        currency_code="INR"
+    )
+    quote = QuoteService.submit_quote(db_session, rfq.id, quote_in, supplier_user)
+
+    bid = Bid(
+        rfq_id=rfq.id,
+        quote_id=quote.id,
+        supplier_id=supplier_user.id,
+        bid_amount=Decimal("5800.00"),
+        currency_code="INR",
+        created_at=now
+    )
+    db_session.add(bid)
+
+    # Transition to CLOSED and record award result
+    rfq.status = RFQStatus.CLOSED.value
+    result = AuctionResult(
+        rfq_id=rfq.id,
+        winning_supplier_id=supplier_user.id,
+        selection_status=SelectionStatus.SELECTED.value,
+        closed_at=now,
+        final_bid_amount=Decimal("5800.00")
+    )
+    db_session.add(result)
+
+    # Persist award notification for participants (as executed in select_winner)
+    award_payload = {
+        "type": "AWARD_RESULT",
+        "rfq_id": str(rfq.id),
+        "rfq_name": rfq.name,
+        "rfq_reference_id": rfq.reference_id,
+        "winner_supplier_id": str(supplier_user.id),
+        "winner_supplier_name": supplier_user.full_name,
+        "final_amount": float(result.final_bid_amount),
+        "awarded_at": now.isoformat(),
+        "selection_status": result.selection_status
+    }
+    notif = Notification(
+        user_id=str(supplier_user.id),
+        category="AWARD",
+        payload=award_payload,
+        read=False,
+        created_at=now,
+    )
+    db_session.add(notif)
+    db_session.commit()
+
+    # Verify notification created in DB
+    db_notif = db_session.query(Notification).filter(
+        Notification.user_id == str(supplier_user.id),
+        Notification.category == "AWARD"
+    ).first()
+    assert db_notif is not None
+    assert db_notif.payload["rfq_id"] == str(rfq.id)
+    assert db_notif.payload["winner_supplier_id"] == str(supplier_user.id)
+    assert db_notif.payload["winner_supplier_name"] == supplier_user.full_name
+    assert db_notif.payload["final_amount"] == 5800.00
+    assert db_notif.read is False
+
+    # Verify notification endpoint returns items for supplier
+    res = list_notifications(db=db_session, current_user=supplier_user)
+    assert len(res["items"]) >= 1
+    assert res["items"][0]["id"] == str(db_notif.id)
+    assert res["items"][0]["category"] == "AWARD"
+    assert res["items"][0]["payload"]["winner_supplier_id"] == str(supplier_user.id)
+
+    # Verify marking notification as read
+    read_res = mark_notification_read(notif_id=str(db_notif.id), db=db_session, current_user=supplier_user)
+    assert read_res["read"] is True
+
+
+# =====================================================================
+# 22. L3 Supplier Re-Bidding to Become L1 (Multi-Supplier Downward Competition)
+# =====================================================================
+def test_23_l3_supplier_rebidding_to_l1(db_session, buyer_user, supplier_user, supplier_user_2, supplier_user_3):
+    """
+    Verifies that a supplier at L3 can submit a valid lower bid to overtake L1.
+    Scenario:
+      1. Three suppliers submit quotes and baseline bids (auto-created)
+      2. Supplier 1 bids 48000 -> L1, Supplier 2 at 49000 -> L2, Supplier 3 at 50000 -> L3
+      3. Supplier 3 (L3) bids 47000 -> becomes L1
+      4. Supplier 3 (L1) bids 45000 -> stays L1 with improved price
+      5. Supplier 2 (L3) bids 44000 -> overtakes L1
+      6. All ranking transitions are verified at every step.
+    """
+    now = datetime.now(timezone.utc)
+    rfq = RFQ(
+        reference_id="RFQ-L3-REBID-TEST",
+        name="L3 Rebidding Scenario",
+        buyer_id=buyer_user.id,
+        bid_start_at=now - timedelta(hours=1),
+        initial_bid_close_at=now + timedelta(hours=2),
+        current_bid_close_at=now + timedelta(hours=2),
+        forced_close_at=now + timedelta(hours=5),
+        pickup_service_date=date.today() + timedelta(days=5),
+        status=RFQStatus.ACTIVE.value
+    )
+    db_session.add(rfq)
+    db_session.flush()
+
+    # No auction config (no extensions) to keep test focused on bidding/ranking
+    # Step 1: All 3 suppliers submit initial quotes (auto-creates baseline bids)
+    q1 = Quote(rfq_id=rfq.id, supplier_id=supplier_user.id,
+               carrier_name="Carrier A", freight_charges=Decimal("50000"),
+               origin_charges=Decimal("0"), destination_charges=Decimal("0"),
+               transit_time="1d", validity_text="30d")
+    q2 = Quote(rfq_id=rfq.id, supplier_id=supplier_user_2.id,
+               carrier_name="Carrier B", freight_charges=Decimal("50000"),
+               origin_charges=Decimal("0"), destination_charges=Decimal("0"),
+               transit_time="1d", validity_text="30d")
+    q3 = Quote(rfq_id=rfq.id, supplier_id=supplier_user_3.id,
+               carrier_name="Carrier C", freight_charges=Decimal("50000"),
+               origin_charges=Decimal("0"), destination_charges=Decimal("0"),
+               transit_time="1d", validity_text="30d")
+    db_session.add_all([q1, q2, q3])
+    db_session.flush()
+
+    # Step 2: Each supplier places an initial competitive bid (descending to create L1/L2/L3)
+    t = now + timedelta(seconds=1)
+    result1 = BiddingService.submit_bid(db_session, rfq.id, supplier_user.id, Decimal("48000"), override_now=t)
+    assert result1["bid"].bid_amount == Decimal("48000")
+
+    t2 = now + timedelta(seconds=2)
+    result2 = BiddingService.submit_bid(db_session, rfq.id, supplier_user_2.id, Decimal("49000"), override_now=t2)
+    assert result2["bid"].bid_amount == Decimal("49000")
+
+    t3 = now + timedelta(seconds=3)
+    result3 = BiddingService.submit_bid(db_session, rfq.id, supplier_user_3.id, Decimal("49500"), override_now=t3)
+    assert result3["bid"].bid_amount == Decimal("49500")
+
+    # Verify initial rankings: L1=Supplier1(48000), L2=Supplier2(49000), L3=Supplier3(49500)
+    rankings = RankingService.calculate_rankings(db_session, rfq.id)
+    assert len(rankings) == 3
+    assert rankings[0].supplier_id == supplier_user.id   # L1
+    assert rankings[0].rank_label == "L1"
+    assert rankings[0].current_bid_amount == Decimal("48000")
+    assert rankings[1].supplier_id == supplier_user_2.id  # L2
+    assert rankings[1].rank_label == "L2"
+    assert rankings[2].supplier_id == supplier_user_3.id  # L3
+    assert rankings[2].rank_label == "L3"
+
+    # Step 3: Supplier 3 (L3) bids 47000 → should become L1
+    t4 = now + timedelta(seconds=10)
+    result_l3_rebid = BiddingService.submit_bid(
+        db_session, rfq.id, supplier_user_3.id, Decimal("47000"), override_now=t4
+    )
+    assert result_l3_rebid["bid"].bid_amount == Decimal("47000")
+
+    # Verify new rankings: L1=Supplier3(47000), L2=Supplier1(48000), L3=Supplier2(49000)
+    rankings2 = RankingService.calculate_rankings(db_session, rfq.id)
+    assert rankings2[0].supplier_id == supplier_user_3.id  # L1 now!
+    assert rankings2[0].rank_label == "L1"
+    assert rankings2[0].current_bid_amount == Decimal("47000")
+    assert rankings2[1].supplier_id == supplier_user.id    # L2
+    assert rankings2[1].rank_label == "L2"
+    assert rankings2[2].supplier_id == supplier_user_2.id  # L3
+    assert rankings2[2].rank_label == "L3"
+
+    # Step 4: Supplier 3 (now L1) bids even lower → stays L1
+    t5 = now + timedelta(seconds=15)
+    result_l1_improve = BiddingService.submit_bid(
+        db_session, rfq.id, supplier_user_3.id, Decimal("45000"), override_now=t5
+    )
+    assert result_l1_improve["bid"].bid_amount == Decimal("45000")
+
+    rankings3 = RankingService.calculate_rankings(db_session, rfq.id)
+    assert rankings3[0].supplier_id == supplier_user_3.id  # Still L1
+    assert rankings3[0].current_bid_amount == Decimal("45000")
+
+    # Step 5: Supplier 2 (currently L3) bids 44000 → overtakes everyone to become L1
+    t6 = now + timedelta(seconds=20)
+    result_l3_overtake = BiddingService.submit_bid(
+        db_session, rfq.id, supplier_user_2.id, Decimal("44000"), override_now=t6
+    )
+    assert result_l3_overtake["bid"].bid_amount == Decimal("44000")
+
+    rankings4 = RankingService.calculate_rankings(db_session, rfq.id)
+    assert rankings4[0].supplier_id == supplier_user_2.id  # New L1!
+    assert rankings4[0].rank_label == "L1"
+    assert rankings4[0].current_bid_amount == Decimal("44000")
+    assert rankings4[1].supplier_id == supplier_user_3.id  # L2
+    assert rankings4[1].current_bid_amount == Decimal("45000")
+    assert rankings4[2].supplier_id == supplier_user.id    # L3
+    assert rankings4[2].current_bid_amount == Decimal("48000")
+
+    # Step 6: Verify Supplier 1 (L3) can ALSO rebid below their own previous 48000
+    t7 = now + timedelta(seconds=25)
+    result_s1_rebid = BiddingService.submit_bid(
+        db_session, rfq.id, supplier_user.id, Decimal("43000"), override_now=t7
+    )
+    assert result_s1_rebid["bid"].bid_amount == Decimal("43000")
+
+    rankings5 = RankingService.calculate_rankings(db_session, rfq.id)
+    assert rankings5[0].supplier_id == supplier_user.id    # Back to L1!
+    assert rankings5[0].current_bid_amount == Decimal("43000")
+
+    # Step 7: Verify that a bid equal to previous price is REJECTED
+    with pytest.raises(HTTPException) as exc:
+        BiddingService.submit_bid(
+            db_session, rfq.id, supplier_user.id, Decimal("43000"), override_now=now + timedelta(seconds=30)
+        )
+    assert exc.value.status_code == 400
+    assert "strictly lower" in exc.value.detail
+
+    # Step 8: Verify that a bid HIGHER than previous price is REJECTED
+    with pytest.raises(HTTPException) as exc2:
+        BiddingService.submit_bid(
+            db_session, rfq.id, supplier_user.id, Decimal("50000"), override_now=now + timedelta(seconds=35)
+        )
+    assert exc2.value.status_code == 400
+    assert "strictly lower" in exc2.value.detail
+

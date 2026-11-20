@@ -1,6 +1,6 @@
 import os
-from typing import List, Union
-from pydantic import AnyHttpUrl, field_validator
+from typing import List
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,9 +8,10 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "British Auction RFQ System"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
     
     # Security
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "super-secret-key-change-in-production-british-auction-2026")
+    SECRET_KEY: str = os.getenv("SECRET_KEY", "dev-only-insecure-secret-change-me")
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
@@ -33,8 +34,16 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:8000",
-        "*"
     ]
+
+    @model_validator(mode="after")
+    def validate_production_security(self):
+        if self.ENVIRONMENT.lower() in {"production", "prod"}:
+            if self.SECRET_KEY == "dev-only-insecure-secret-change-me" or len(self.SECRET_KEY) < 32:
+                raise ValueError("A strong SECRET_KEY of at least 32 characters is required in production")
+            if "*" in self.BACKEND_CORS_ORIGINS:
+                raise ValueError("Wildcard CORS origins are not allowed in production")
+        return self
 
     model_config = SettingsConfigDict(
         env_file=".env",

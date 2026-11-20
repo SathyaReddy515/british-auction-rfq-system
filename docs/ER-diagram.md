@@ -1,6 +1,6 @@
 # Entity-Relationship (ER) Diagram
 
-The following Mermaid diagram visualizes the relational structure, primary keys, foreign keys, cardinality, and constraints across the 7 core database tables.
+The following Mermaid diagram visualizes the relational structure, primary keys, foreign keys, cardinality, and constraints across the database tables.
 
 ```mermaid
 erDiagram
@@ -9,6 +9,7 @@ erDiagram
     USERS ||--o{ BIDS : "places (as Supplier)"
     USERS ||--o{ AUCTION_RESULTS : "selected as awardee"
     USERS ||--o{ AUCTION_ACTIVITY_LOGS : "acts as"
+    USERS ||--o{ NOTIFICATIONS : "receives"
     
     RFQS ||--|| AUCTION_CONFIGS : "configured with (1:1)"
     RFQS ||--o{ QUOTES : "receives"
@@ -98,6 +99,15 @@ erDiagram
         numeric final_bid_amount "Winning price"
         varchar selection_status "PENDING_SELECTION | SELECTED | NO_VALID_BIDS"
         timestamptz closed_at "Closure time"
+        timestamptz created_at
+    }
+
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK "References users.id"
+        varchar category "AWARD"
+        json payload "Notification details"
+        boolean read "Default false"
         timestamptz created_at
     }
 ```

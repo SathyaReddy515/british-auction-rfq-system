@@ -62,7 +62,8 @@ async def submit_bid(
                 "supplier_id": str(r.supplier_id),
                 "supplier_name": r.supplier_name,
                 "current_bid_amount": float(r.current_bid_amount),
-                "submitted_at": r.submitted_at.isoformat()
+                "submitted_at": r.submitted_at.isoformat(),
+                "is_current_user": False  # WS broadcast; frontend re-derives from supplier_id
             } for r in rankings
         ]
     }
@@ -92,7 +93,7 @@ def get_bids(
     bids = (
         db.query(Bid)
         .filter(Bid.rfq_id == rfq_id)
-        .order_by(Bid.created_at.desc())
+        .order_by(Bid.created_at.desc(), Bid.id.desc())
         .all()
     )
 

@@ -23,3 +23,4 @@ class User(Base):
     quotes = relationship("Quote", back_populates="supplier", cascade="all, delete-orphan")
     bids = relationship("Bid", back_populates="supplier", cascade="all, delete-orphan")
     awarded_results = relationship("AuctionResult", back_populates="winning_supplier")
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")

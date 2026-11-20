@@ -1,5 +1,6 @@
 import React from 'react';
 import { ActivityLog } from '../types/auction';
+import { parseUTC } from '../hooks/useCountdown';
 import { 
   ArrowDownCircle, 
   Clock, 
@@ -65,7 +66,7 @@ export const ActivityFeed: React.FC<ActivityFeedProps> = ({ logs }) => {
   return (
     <div className="relative pl-6 space-y-6 before:absolute before:left-2 before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-800">
       {logs.map((log) => {
-        const timeStr = new Date(log.created_at).toLocaleTimeString([], {
+        const timeStr = new Date(parseUTC(log.created_at)).toLocaleTimeString([], {
           hour: '2-digit',
           minute: '2-digit',
           second: '2-digit',

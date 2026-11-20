@@ -27,18 +27,20 @@ This document maps every requirement from the **British Auction in RFQ System Co
 | **REQ-17** | **Simultaneous Bids Concurrency**<br>Row-level locking (`SELECT FOR UPDATE`) prevents race conditions | Master Prompt Sec 6 | Backend: `app/services/bidding_service.py` | `test_17_simultaneous_bids_simulation` | **VERIFIED (PASSED)** |
 | **REQ-18** | **Idempotent Background Tasks**<br>Duplicate task execution produces no duplicate state changes | Master Prompt Sec 11 | Backend: `app/tasks/closure_tasks.py`, `app/services/closure_service.py` | `test_18_duplicate_task_execution_idempotency` | **VERIFIED (PASSED)** |
 | **REQ-19** | **Stale Task Protection**<br>Delayed/stale closure tasks re-check DB and do not close prematurely | Master Prompt Sec 11 | Backend: `app/tasks/closure_tasks.py`, `app/services/closure_service.py` | `test_19_scheduled_closure_after_extension` | **VERIFIED (PASSED)** |
-| **REQ-20** | **Role-Based Authorization (RBAC)**<br>Buyers manage RFQs; Suppliers submit bids; unauth blocked | Master Prompt Sec 3, 14 | Backend: `app/api/deps.py` (`get_current_buyer`, `get_current_supplier`) | `test_20_unauthorized_role_enforcement` | **VERIFIED (PASSED)** |
+| **REQ-20** | **Role-Based Authorization (RBAC)**<br>Buyers manage RFQs; Suppliers submit bids; unauth blocked | Master Prompt Sec 3, 14 | Backend: `app/api/deps.py` (`get_current_buyer`, `get_current_supplier`) | `test_21_unauthorized_role_enforcement` | **VERIFIED (PASSED)** |
 | **REQ-21** | **Auction Listing Page**<br>Ref ID, Lowest Bid, Current Close, Forced Close, Status, Search, Filters | Section 8 (Page 4) | Frontend: `pages/AuctionListing.tsx`<br>Backend: `app/api/v1/endpoints/rfqs.py` | UI Verified & Built | **VERIFIED (PASSED)** |
 | **REQ-22** | **Auction Details Page**<br>Sorted bids, L1/L2/L3 badges, Quote details, Config, Activity Log | Section 8 (Page 4) | Frontend: `pages/AuctionDetails.tsx`, `components/CountdownTimer.tsx`, `components/BiddingConsole.tsx` | UI Verified & Built | **VERIFIED (PASSED)** |
 | **REQ-23** | **Real-Time Streaming**<br>FastAPI WebSockets push instant bids, extensions, and rankings | Master Prompt Sec 10 | Backend: `app/websocket/connection_manager.py`, `app/api/v1/endpoints/ws.py`<br>Frontend: `hooks/useAuctionWebSocket.ts` | End-to-End WebSocket Streaming | **VERIFIED (PASSED)** |
 | **REQ-24** | **Deliverables 1-4**<br>HLD, Database Schema, Backend Code, Frontend Code | Section 9 (Page 5) | `docs/HLD.md`, `docs/database-schema.md`, `backend/`, `frontend/` | Complete Full-Stack Implementation | **VERIFIED (PASSED)** |
+| **REQ-25** | **Supplier Award Notifications & Decision Visibility**<br>Persistent notifications, real-time toasts, navbar notification inbox, and Won/Lost status badges | Section 8 & Handover | Backend: `app/models/notification.py`, `app/api/v1/endpoints/notifications.py`, `app/api/v1/endpoints/results.py`<br>Frontend: `components/Navbar.tsx`, `pages/SupplierDashboard.tsx`, `pages/AuctionDetails.tsx` | `test_22_supplier_award_notification` | **VERIFIED (PASSED)** |
+| **REQ-26** | **Existing Participant Rebid**<br>A supplier with an existing bid remains eligible to submit lower bids and can reach L1 | British Auction reverse-bidding behavior | Backend: `app/services/bidding_service.py`, `app/services/ranking_service.py`<br>Frontend: `pages/AuctionDetails.tsx`, `components/BiddingConsole.tsx` | `test_20_existing_participant_remains_eligible`, `test_23_l3_supplier_rebidding_to_l1` | **VERIFIED (PASSED)** |
 
 ---
 
 ## 2. Test Execution Summary
 
-- **Total Test Scenarios:** 20 / 20
-- **Passed:** 20
+- **Total Test Scenarios:** 23 / 23
+- **Passed:** 23
 - **Failed:** 0
 - **Execution Engine:** `pytest 9.2.0` on Python 3.11.9
 - **Overall Quality Grade:** Production Ready

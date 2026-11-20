@@ -97,6 +97,21 @@ def supplier_user_2(db_session):
 
 
 @pytest.fixture
+def supplier_user_3(db_session):
+    user = User(
+        full_name="Supplier Three",
+        email="supplier3@test.com",
+        password_hash=hash_password("password123"),
+        role=UserRole.SUPPLIER.value,
+        is_active=True
+    )
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    return user
+
+
+@pytest.fixture
 def buyer_headers(buyer_user):
     token = create_access_token(subject=buyer_user.id, role=buyer_user.role)
     return {"Authorization": f"Bearer {token}"}

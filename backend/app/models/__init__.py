@@ -6,6 +6,7 @@ from backend.app.models.quote import Quote
 from backend.app.models.bid import Bid
 from backend.app.models.auction_activity_log import AuctionActivityLog
 from backend.app.models.auction_result import AuctionResult
+from backend.app.models.notification import Notification
 
 __all__ = [
     "UserRole",
@@ -20,4 +21,5 @@ __all__ = [
     "Bid",
     "AuctionActivityLog",
     "AuctionResult",
+    "Notification",
 ]

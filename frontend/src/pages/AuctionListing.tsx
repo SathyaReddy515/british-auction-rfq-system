@@ -14,18 +14,20 @@ import {
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
-import { RFQ } from '../types/auction';
+import { RFQ, AuctionNotification } from '../types/auction';
 import { rfqService } from '../services/rfqService';
 import { useAuth } from '../context/AuthContext';
 import { StatusBadge } from '../components/StatusBadge';
 import { CreateRFQModal } from '../components/CreateRFQModal';
 import { parseUTC } from '../hooks/useCountdown';
+import { Trophy } from 'lucide-react';
 
 export const AuctionListing: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [rfqs, setRfqs] = useState<RFQ[]>([]);
+  const [notifications, setNotifications] = useState<AuctionNotification[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -37,16 +39,22 @@ export const AuctionListing: React.FC = () => {
   const fetchRFQs = async () => {
     setLoading(true);
     try {
-      const data = await rfqService.listRFQs({
-        search: search || undefined,
-        status: statusFilter || undefined,
-        skip: (page - 1) * limit,
-        limit,
-        order_by: 'created_at',
-        order_dir: 'desc',
-      });
+      const [data, notifs] = await Promise.all([
+        rfqService.listRFQs({
+          search: search || undefined,
+          status: statusFilter || undefined,
+          skip: (page - 1) * limit,
+          limit,
+          order_by: 'created_at',
+          order_dir: 'desc',
+        }),
+        user?.role === 'SUPPLIER'
+          ? rfqService.getNotifications().catch(() => ({ items: [] }))
+          : Promise.resolve({ items: [] }),
+      ]);
       setRfqs(data.items);
       setTotal(data.total);
+      setNotifications(notifs.items || []);
     } catch (err) {
       console.error('Failed to load RFQs:', err);
     } finally {
@@ -216,7 +224,25 @@ export const AuctionListing: React.FC = () => {
                       </td>
 
                       <td className="py-4 px-4">
-                        <StatusBadge status={rfq.status} />
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <StatusBadge status={rfq.status} />
+                          {(() => {
+                            if (user?.role !== 'SUPPLIER') return null;
+                            const outcome = notifications.find(
+                              (n) => n.payload?.rfq_id === rfq.id && n.category === 'AWARD'
+                            );
+                            if (!outcome) return null;
+                            return outcome.payload.winner_supplier_id === user.id ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-0.5">
+                                <Trophy className="w-2.5 h-2.5" /> Won
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                                Lost
+                              </span>
+                            );
+                          })()}
+                        </div>
                       </td>
 
                       <td className="py-4 px-4 text-right font-mono font-bold text-sm">

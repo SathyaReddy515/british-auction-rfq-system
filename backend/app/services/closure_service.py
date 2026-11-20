@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from backend.app.models.rfq import RFQ
 from backend.app.models.auction_result import AuctionResult
 from backend.app.models.auction_activity_log import AuctionActivityLog
+from backend.app.models.bid import Bid
 from backend.app.models.enums import RFQStatus, EventType, SelectionStatus
 from backend.app.services.ranking_service import RankingService
 
@@ -66,6 +67,14 @@ class ClosureService:
         # Create or update AuctionResult snapshot
         existing_result = db.query(AuctionResult).filter(AuctionResult.rfq_id == rfq.id).first()
         l1_info = RankingService.get_l1_supplier(db, rfq.id)
+        final_bid = None
+        if l1_info:
+            final_bid = (
+                db.query(Bid)
+                .filter(Bid.rfq_id == rfq.id, Bid.supplier_id == l1_info[0])
+                .order_by(Bid.created_at.desc(), Bid.id.desc())
+                .first()
+            )
 
         if not existing_result:
             result = AuctionResult(
@@ -76,6 +85,7 @@ class ClosureService:
             if l1_info:
                 supplier_id, lowest_amount = l1_info
                 result.winning_supplier_id = supplier_id
+                result.final_bid_id = final_bid.id if final_bid else None
                 result.final_bid_amount = lowest_amount
             db.add(result)
         else:
@@ -83,6 +93,7 @@ class ClosureService:
             if l1_info:
                 supplier_id, lowest_amount = l1_info
                 existing_result.winning_supplier_id = supplier_id
+                existing_result.final_bid_id = final_bid.id if final_bid else None
                 existing_result.final_bid_amount = lowest_amount
                 existing_result.selection_status = SelectionStatus.PENDING_SELECTION.value
 

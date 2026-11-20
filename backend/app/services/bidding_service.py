@@ -101,12 +101,6 @@ class BiddingService:
             Quote.supplier_id == supplier_id
         ).first()
 
-        if not quote:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Supplier must submit an initial quotation breakdown before participating in competitive bidding."
-            )
-
         # 3. Check downward price rule
         latest_supplier_bid = (
             db.query(Bid)
@@ -115,12 +109,21 @@ class BiddingService:
             .first()
         )
 
+        if not quote and not latest_supplier_bid:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Supplier must submit an initial quotation breakdown before participating in competitive bidding."
+            )
+
         previous_price = latest_supplier_bid.bid_amount if latest_supplier_bid else quote.total_amount
         if bid_amount >= previous_price:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Bid amount ({bid_amount}) must be strictly lower than your previous price ({previous_price})."
             )
+
+        bid_currency = quote.currency_code if quote else latest_supplier_bid.currency_code
+        carrier_name = quote.carrier_name if quote else "Existing Participant"
 
         # Check idempotency
         req_id = request_id or uuid.uuid4()
@@ -142,10 +145,10 @@ class BiddingService:
         # 5. Insert new bid
         new_bid = Bid(
             rfq_id=rfq_id,
-            quote_id=quote.id,
+            quote_id=quote.id if quote else latest_supplier_bid.quote_id,
             supplier_id=supplier_id,
             bid_amount=bid_amount,
-            currency_code=quote.currency_code,
+            currency_code=quote.currency_code if quote else latest_supplier_bid.currency_code,
             request_id=req_id,
             created_at=now
         )
@@ -201,12 +204,12 @@ class BiddingService:
             rfq_id=rfq.id,
             actor_user_id=supplier_id,
             event_type=EventType.BID_SUBMITTED.value,
-            description=f"Supplier submitted competitive downward bid of {quote.currency_code} {bid_amount:,.2f}.",
+            description=f"Supplier submitted competitive downward bid of {bid_currency} {bid_amount:,.2f}.",
             event_data={
                 "bid_amount": float(bid_amount),
                 "previous_price": float(previous_price),
                 "supplier_id": str(supplier_id),
-                "carrier_name": quote.carrier_name,
+                "carrier_name": carrier_name,
                 "current_rank": ranks_after.get(supplier_id)
             },
             created_at=now

@@ -1,5 +1,5 @@
 import { api } from './api';
-import { RFQ, AuctionConfig, Quote, Bid, AuctionRankingResponse, ActivityLog, AuctionResult } from '../types/auction';
+import { RFQ, AuctionConfig, Quote, Bid, AuctionRankingResponse, ActivityLog, AuctionResult, AuctionNotification } from '../types/auction';
 
 export interface RFQListParams {
   search?: string;
@@ -115,6 +115,17 @@ export const rfqService = {
 
   checkClosure: async (rfqId: string): Promise<{ closed: boolean; description: string; status?: string }> => {
     const res = await api.post<{ closed: boolean; description: string; status?: string }>(`/rfqs/${rfqId}/check-closure`);
+    return res.data;
+  },
+
+  // Notifications
+  getNotifications: async (): Promise<{ items: AuctionNotification[] }> => {
+    const res = await api.get<{ items: AuctionNotification[] }>('/notifications');
+    return res.data;
+  },
+
+  markNotificationRead: async (notifId: string): Promise<AuctionNotification> => {
+    const res = await api.patch<AuctionNotification>(`/notifications/${notifId}/read`);
     return res.data;
   }
 };

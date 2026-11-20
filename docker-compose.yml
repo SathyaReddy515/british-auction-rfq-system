@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
     container_name: british_auction_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env or the shell}
       POSTGRES_DB: ${POSTGRES_DB:-british_auction}
     ports:
       - "5432:5432"
@@ -36,14 +34,15 @@ services:
     container_name: british_auction_backend
     command: >
       sh -c "python -m alembic upgrade head &&
-             python -m backend.scripts.seed_data &&
+             python -c 'from backend.scripts.seed_data import seed_database; seed_database(drop_existing=False)' &&
              uvicorn backend.app.main:app --host 0.0.0.0 --port 8000"
     environment:
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env or the shell}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-in-production-british-auction-2026}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env or the shell}
     ports:
       - "8000:8000"
     depends_on:
@@ -59,11 +58,12 @@ services:
     container_name: british_auction_celery_worker
     command: celery -A backend.app.tasks.celery_app.celery_app worker --loglevel=info
     environment:
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env or the shell}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-in-production-british-auction-2026}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env or the shell}
     depends_on:
       postgres:
         condition: service_healthy
@@ -77,11 +77,12 @@ services:
     container_name: british_auction_celery_beat
     command: celery -A backend.app.tasks.celery_app.celery_app beat --loglevel=info
     environment:
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env or the shell}@postgres:5432/${POSTGRES_DB:-british_auction}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
-      - SECRET_KEY=${SECRET_KEY:-super-secret-key-change-in-production-british-auction-2026}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be set in .env or the shell}
     depends_on:
       postgres:
         condition: service_healthy

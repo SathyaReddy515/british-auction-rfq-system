@@ -163,6 +163,18 @@ class RFQService:
             query = query.order_by(desc(sort_col))
 
         rfqs = query.offset(skip).limit(limit).all()
+
+        # Reconcile closure for any active auctions whose closing time has passed
+        now = datetime.now(timezone.utc)
+        for r in rfqs:
+            if r.status == RFQStatus.ACTIVE.value:
+                close_t = r.current_bid_close_at
+                if close_t.tzinfo is None:
+                    close_t = close_t.replace(tzinfo=timezone.utc)
+                if now >= close_t:
+                    from backend.app.services.closure_service import ClosureService
+                    ClosureService.evaluate_and_close_auction(db, r.id, override_now=now)
+
         return rfqs, total
 
     @classmethod
@@ -170,4 +182,16 @@ class RFQService:
         rfq = db.query(RFQ).filter(RFQ.id == rfq_id).first()
         if not rfq:
             raise HTTPException(status_code=404, detail="RFQ not found")
+
+        # Reconcile closure if active and closing time has passed
+        if rfq.status == RFQStatus.ACTIVE.value:
+            now = datetime.now(timezone.utc)
+            close_t = rfq.current_bid_close_at
+            if close_t.tzinfo is None:
+                close_t = close_t.replace(tzinfo=timezone.utc)
+            if now >= close_t:
+                from backend.app.services.closure_service import ClosureService
+                ClosureService.evaluate_and_close_auction(db, rfq.id, override_now=now)
+                db.refresh(rfq)
+
         return rfq

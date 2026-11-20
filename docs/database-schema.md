@@ -143,3 +143,17 @@ Snapshot of auction outcome upon closure and manual buyer award tracking.
 | `selection_status` | VARCHAR(30) | NOT NULL | `PENDING_SELECTION`, `SELECTED`, `NO_VALID_BIDS` |
 | `closed_at` | TIMESTAMPTZ | NOT NULL | Timestamp when auction closed |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT `NOW()` | Snapshot timestamp |
+
+---
+
+### 2.8 `notifications`
+Stores persisted in-app notifications, including supplier award notifications.
+
+| Column | Data Type | Constraints | Description |
+|---|---|---|---|
+| `id` | UUID | PRIMARY KEY | Notification identifier |
+| `user_id` | UUID | NOT NULL, FOREIGN KEY → `users(id)` ON DELETE CASCADE, INDEX | Recipient |
+| `category` | VARCHAR | NOT NULL | Notification category, such as `AWARD` |
+| `payload` | JSON | NOT NULL | Award and auction details |
+| `read` | BOOLEAN | NOT NULL, DEFAULT FALSE | Read status |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT `NOW()` | Notification timestamp |

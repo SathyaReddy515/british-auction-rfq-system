@@ -1,4 +1,5 @@
 import uuid
+from datetime import timezone
 from typing import List
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -31,6 +32,10 @@ def get_activity_logs(
         if current_user.role == "SUPPLIER" and log.actor_user_id and log.actor_user_id != current_user.id:
             actor_name = f"Supplier #{str(log.actor_user_id)[:4]}"
 
+        created_at = log.created_at
+        if created_at and created_at.tzinfo is None:
+            created_at = created_at.replace(tzinfo=timezone.utc)
+
         response.append({
             "id": log.id,
             "rfq_id": log.rfq_id,
@@ -39,6 +44,6 @@ def get_activity_logs(
             "event_type": log.event_type,
             "description": log.description,
             "event_data": log.event_data or {},
-            "created_at": log.created_at
+            "created_at": created_at
         })
     return response

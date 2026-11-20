@@ -149,15 +149,51 @@ export interface WebSocketNewBidEvent {
 }
 
 export interface WebSocketStatusChangeEvent {
-  type: 'AUCTION_CLOSED' | 'AUCTION_FORCE_CLOSED' | 'WINNER_SELECTED';
+  type: 'AUCTION_CLOSED' | 'AUCTION_FORCE_CLOSED' | 'WINNER_SELECTED' | 'AWARD_RESULT';
   rfq_id: string;
   status?: RFQStatus;
   description?: string;
   winning_supplier_id?: string;
   winning_supplier_name?: string;
+  winner_supplier_id?: string;
+  winner_supplier_name?: string;
+  final_amount?: number;
+  awarded_at?: string;
+}
+
+export interface WebSocketAwardResultEvent {
+  type: 'AWARD_RESULT';
+  rfq_id: string;
+  rfq_name?: string;
+  rfq_reference_id?: string;
+  winner_supplier_id: string;
+  winner_supplier_name: string;
+  final_amount?: number;
+  awarded_at: string;
+  selection_status: string;
+}
+
+export interface AuctionNotification {
+  id: string;
+  user_id: string;
+  category: string;
+  payload: {
+    type?: string;
+    rfq_id: string;
+    rfq_name?: string;
+    rfq_reference_id?: string;
+    winner_supplier_id?: string;
+    winner_supplier_name?: string;
+    final_amount?: number;
+    awarded_at?: string;
+    selection_status?: string;
+  };
+  read: boolean;
+  created_at: string;
 }
 
 export type AuctionWebSocketEvent = 
   | WebSocketAuctionStateEvent 
   | WebSocketNewBidEvent 
-  | WebSocketStatusChangeEvent;
+  | WebSocketStatusChangeEvent
+  | WebSocketAwardResultEvent;

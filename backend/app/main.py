@@ -9,8 +9,6 @@ import backend.app.models  # Ensure all models are registered
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize tables on startup
-    Base.metadata.create_all(bind=engine)
     yield
 
 

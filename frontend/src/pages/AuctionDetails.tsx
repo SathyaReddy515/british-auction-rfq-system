@@ -87,7 +87,12 @@ export const AuctionDetails: React.FC = () => {
   const handleWebSocketEvent = useCallback((event: any) => {
     if (event.type === 'NEW_BID') {
       // Update lowest bid and rankings in real-time
-      setRankings(event.rankings || []);
+      // Enrich WS rankings with is_current_user since broadcast doesn't know viewer
+      const enrichedRankings = (event.rankings || []).map((r: any) => ({
+        ...r,
+        is_current_user: r.supplier_id === user?.id
+      }));
+      setRankings(enrichedRankings);
       if (event.current_lowest_bid) {
         setRfq((prev) => prev ? { ...prev, current_lowest_bid: event.current_lowest_bid } : null);
       }
@@ -102,17 +107,39 @@ export const AuctionDetails: React.FC = () => {
         rfqService.getActivityLogs(id).then(setActivityLogs).catch(() => {});
       }
     } else if (event.type === 'AUCTION_STATE') {
-      if (event.rankings) setRankings(event.rankings);
+      if (event.rankings) {
+        const enrichedRankings = event.rankings.map((r: any) => ({
+          ...r,
+          is_current_user: r.supplier_id === user?.id
+        }));
+        setRankings(enrichedRankings);
+      }
       if (event.current_bid_close_at) {
         setRfq((prev) => prev ? { ...prev, current_bid_close_at: event.current_bid_close_at, status: event.status } : null);
       }
     } else if (event.type === 'AUCTION_CLOSED' || event.type === 'AUCTION_FORCE_CLOSED') {
       setRfq((prev) => prev ? { ...prev, status: event.status } : null);
+      setExtensionNotice(`🏁 Auction Concluded: Status changed to ${event.status}.`);
+      setTimeout(() => setExtensionNotice(null), 10000);
       if (id) {
         rfqService.getResults(id).then(setResult).catch(() => {});
         rfqService.getActivityLogs(id).then(setActivityLogs).catch(() => {});
       }
-    } else if (event.type === 'WINNER_SELECTED') {
+    } else if (event.type === 'WINNER_SELECTED' || event.type === 'AWARD_RESULT') {
+      const winnerName = (event as any).winning_supplier_name || (event as any).winner_supplier_name || 'Winning Supplier';
+      const winnerId = (event as any).winning_supplier_id || (event as any).winner_supplier_id;
+      const isCurrentUserWinner = user?.id === winnerId;
+
+      if (user?.role === 'SUPPLIER') {
+        if (isCurrentUserWinner) {
+          setExtensionNotice(`🎉 Congratulations! You WON this auction! The contract has been officially awarded to you.`);
+        } else {
+          setExtensionNotice(`❌ Auction Concluded: The contract was awarded to ${winnerName}.`);
+        }
+      } else {
+        setExtensionNotice(`🏆 Contract Officially Awarded to ${winnerName}!`);
+      }
+      setTimeout(() => setExtensionNotice(null), 15000);
       if (id) {
         rfqService.getResults(id).then(setResult).catch(() => {});
         rfqService.getActivityLogs(id).then(setActivityLogs).catch(() => {});
@@ -156,6 +183,8 @@ export const AuctionDetails: React.FC = () => {
     try {
       const res = await rfqService.checkClosure(id);
       if (res.closed) {
+        setExtensionNotice('🏁 Auction Concluded: Status transitioned to CLOSED.');
+        setTimeout(() => setExtensionNotice(null), 10000);
         fetchAuctionData();
       } else {
         alert(res.description);
@@ -164,6 +193,20 @@ export const AuctionDetails: React.FC = () => {
       alert(e.response?.data?.detail || 'Error running closure check.');
     }
   };
+
+  const handleAutoClose = useCallback(async () => {
+    if (!id || rfq?.status !== 'ACTIVE') return;
+    try {
+      const res = await rfqService.checkClosure(id);
+      if (res.closed) {
+        setExtensionNotice('🏁 Countdown reached zero! Auction automatically concluded.');
+        setTimeout(() => setExtensionNotice(null), 10000);
+        fetchAuctionData();
+      }
+    } catch (err) {
+      console.error('Auto-closure check failed:', err);
+    }
+  }, [id, rfq?.status, fetchAuctionData]);
 
   if (loading || !rfq) {
     return (
@@ -180,10 +223,15 @@ export const AuctionDetails: React.FC = () => {
 
   // Find user's submitted quote (if supplier)
   const userQuote = quotes.find((q) => q.supplier_id === user?.id);
-  const isEligibleToBid = !!userQuote;
 
   // Find user's latest bid
-  const userLatestBid = bids.find((b) => b.supplier_id === user?.id);
+  const userLatestBid = bids
+    .filter((b) => b.supplier_id === user?.id)
+    .sort((a, b) => {
+      const timestampDifference = new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return timestampDifference || b.id.localeCompare(a.id);
+    })[0];
+  const isEligibleToBid = !!userQuote || !!userLatestBid || !!rankings.find((r) => r.supplier_id === user?.id);
   const userPreviousBid = userLatestBid ? userLatestBid.bid_amount : (userQuote ? userQuote.total_amount : undefined);
 
   // Find user's current ranking label
@@ -281,6 +329,20 @@ export const AuctionDetails: React.FC = () => {
               </button>
             )}
 
+            {!isBuyer && isClosed && result?.selection_status === 'SELECTED' && (
+              <button
+                onClick={() => setIsWinnerModalOpen(true)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                  result.winning_supplier_id === user?.id
+                    ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/50'
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                }`}
+              >
+                <Trophy className="w-4 h-4" />{' '}
+                {result.winning_supplier_id === user?.id ? '🎉 You Won - View Award' : 'View Award Details'}
+              </button>
+            )}
+
             {!isBuyer && isAuctionActive && !isEligibleToBid && (
               <button
                 onClick={() => setIsQuoteModalOpen(true)}
@@ -318,7 +380,51 @@ export const AuctionDetails: React.FC = () => {
         triggerWindowMinutes={config?.trigger_window_minutes || 10}
         extensionMinutes={config?.extension_duration_minutes || 5}
         status={rfq.status}
+        onExpire={handleAutoClose}
       />
+
+      {/* Winner / Award Status Card */}
+      {isClosed && result?.selection_status === 'SELECTED' && (
+        <div className={`p-5 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xl ${
+          !isBuyer && result.winning_supplier_id === user?.id
+            ? 'bg-gradient-to-r from-emerald-950/60 to-slate-900 border-emerald-500/40 text-emerald-200'
+            : !isBuyer
+            ? 'bg-gradient-to-r from-slate-900 to-rose-950/30 border-rose-500/30 text-slate-300'
+            : 'bg-gradient-to-r from-amber-950/40 to-slate-900 border-amber-500/30 text-amber-200'
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className={`p-3 rounded-xl border ${
+              !isBuyer && result.winning_supplier_id === user?.id
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30'
+                : !isBuyer
+                ? 'bg-slate-800 text-rose-400 border-slate-700'
+                : 'bg-amber-500/20 text-amber-400 border-amber-500/30'
+            }`}>
+              <Trophy className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider">
+                {!isBuyer && result.winning_supplier_id === user?.id
+                  ? '🎉 Auction Won!'
+                  : !isBuyer
+                  ? 'Auction Concluded (Result: Lost)'
+                  : 'Contract Officially Awarded'}
+              </div>
+              <div className="text-sm font-semibold text-white mt-0.5">
+                {!isBuyer && result.winning_supplier_id === user?.id
+                  ? `Congratulations! Contract awarded to you at INR ${result.final_bid_amount ? result.final_bid_amount.toLocaleString() : 'N/A'}`
+                  : `Awarded to ${result.winning_supplier_name || 'Winning Supplier'} at INR ${result.final_bid_amount ? result.final_bid_amount.toLocaleString() : 'N/A'}`}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsWinnerModalOpen(true)}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold border border-slate-700 transition-all self-start sm:self-auto cursor-pointer flex items-center gap-1.5"
+          >
+            <Trophy className="w-3.5 h-3.5 text-amber-400" /> View Award Certificate
+          </button>
+        </div>
+      )}
 
       {/* Tab Navigation */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
@@ -476,7 +582,7 @@ export const AuctionDetails: React.FC = () => {
                 isAuctionActive={isAuctionActive}
                 onSubmitBid={async (amount) => {
                   await rfqService.submitBid(rfq.id, amount);
-                  fetchAuctionData();
+                  await fetchAuctionData();
                 }}
                 onOpenQuoteModal={() => setIsQuoteModalOpen(true)}
               />
@@ -667,6 +773,7 @@ export const AuctionDetails: React.FC = () => {
         rfqId={rfq.id}
         rfqName={rfq.name}
         rankings={rankings}
+        result={result}
         isOpen={isWinnerModalOpen}
         onClose={() => setIsWinnerModalOpen(false)}
         onSuccess={fetchAuctionData}

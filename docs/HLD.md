@@ -25,7 +25,7 @@ flowchart TD
     end
 
     subgraph Persistence_Layer["Storage & Message Broker Layer"]
-        PostgresDB[("PostgreSQL 16 (Authoritative State)\n- Tables: users, rfqs, auction_configs,\nquotes, bids, logs, results")]
+        PostgresDB[("PostgreSQL 16 (Authoritative State)\n- Tables: users, rfqs, auction_configs,\nquotes, bids, logs, results, notifications")]
         RedisBroker[("Redis 7 (Broker & Pub/Sub)\n- Celery task queue\n- Live WS state fanout")]
     end
 

@@ -1,4 +1,5 @@
 import uuid
+from datetime import timezone
 from typing import List, Dict, Optional, Tuple
 from decimal import Decimal
 from sqlalchemy.orm import Session
@@ -66,6 +67,10 @@ class RankingService:
             else:
                 display_name = raw_name
 
+            sub_at = bid.created_at
+            if sub_at and sub_at.tzinfo is None:
+                sub_at = sub_at.replace(tzinfo=timezone.utc)
+
             rankings.append(
                 SupplierRankingItem(
                     rank=index,
@@ -73,7 +78,7 @@ class RankingService:
                     supplier_id=bid.supplier_id,
                     supplier_name=display_name,
                     current_bid_amount=bid.bid_amount,
-                    submitted_at=bid.created_at,
+                    submitted_at=sub_at,
                     is_current_user=is_self
                 )
             )

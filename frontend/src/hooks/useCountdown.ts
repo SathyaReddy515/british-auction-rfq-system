@@ -27,9 +27,11 @@ export const parseUTC = (str?: string): number => {
 export const useCountdown = (
   closeTimeStr?: string,
   forcedTimeStr?: string,
-  triggerWindowMinutes: number = 10
+  triggerWindowMinutes: number = 10,
+  onExpire?: () => void
 ): CountdownResult => {
   const [now, setNow] = useState<number>(Date.now());
+  const [hasTriggeredExpire, setHasTriggeredExpire] = useState<boolean>(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -37,6 +39,11 @@ export const useCountdown = (
     }, 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Reset expire trigger if closeTime changes (e.g. after dynamic British Auction extension!)
+  useEffect(() => {
+    setHasTriggeredExpire(false);
+  }, [closeTimeStr]);
 
   if (!closeTimeStr) {
     return {
@@ -75,6 +82,13 @@ export const useCountdown = (
 
   const isExpired = diffMs <= 0;
   const isForcedExpired = forcedDiffMs <= 0;
+
+  useEffect(() => {
+    if (isExpired && onExpire && !hasTriggeredExpire && closeTimeStr) {
+      setHasTriggeredExpire(true);
+      onExpire();
+    }
+  }, [isExpired, onExpire, hasTriggeredExpire, closeTimeStr]);
 
   // Trigger window check: current time is within [closeTime - X mins, closeTime)
   const triggerWindowMs = triggerWindowMinutes * 60 * 1000;
